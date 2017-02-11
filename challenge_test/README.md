@@ -2,7 +2,7 @@
 
 # Challenge Test
 
-Responsible: Luis
+Responsible: Janno
 
 ----------------------------------------------------
                     Startup
@@ -11,15 +11,11 @@ Responsible: Luis
 
 amigo1/sergio1:
 
-    astart/sstart # (if not already running)
-
-amigo2/sergio1:
-
-    ahardware/shardware: base, spindle, arms, head
+    astart/sstart <environment> # (if not already running)
 
 amigo1/sergio1:
 
-    amiddle/smiddle
+    amiddle/smiddle <environment>
 
 amigo3:
 
@@ -27,20 +23,10 @@ amigo3:
 
     rosrun robot_skills test_audio.py [robot_name]
 
-    rosrun challenge_test test.py 
+    rosrun challenge_test challenge_test.py amigo
 
 
 ----------------------------------------------------
                     Behaviour
 ----------------------------------------------------
 
-- drive to living room
-- wait for person to step in front
-- learn person's name
-- learn person's face
-- go to cabine
-- find drinks
-- pick random drink
-- return to living room
-- search for person learned ebfore
-- deliver drink to the person

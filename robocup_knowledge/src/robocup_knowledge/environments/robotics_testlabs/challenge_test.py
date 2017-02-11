@@ -1,29 +1,30 @@
+starting_point = "initial_pose"
 
+# required keys: entity_id (str), room_id (str), navigation_area (str), segment_areas (list)
+inspection_places = [
+    {"entity_id": "dinner_table",
+     "room_id": "livingroom",
+     "navigate_area": "near",
+     "segment_areas": ["on_top_of"]},
 
-''' printing shortcuts '''
-def printOk(sentence):
-    print prefix + bcolors.OKBLUE + sentence + bcolors.ENDC
+    {"entity_id": "cabinet",
+     "room_id": "kitchen",
+     "navigate_area": "near",
+     "segment_areas": ["on_top_of"]},
+]
 
-def printError(sentence):
-    print prefix + bcolors.FAIL + sentence + bcolors.ENDC
+known_types = [
+    "coke",
+    "fanta",
+    "mentos",
+    "bifrutas",
+    "beer",
+    "coffee_pads",
+    "deodorant",
+    "ice_tea",
+    "sprite",
+    "tea",
+    "water",
+    "xylit24_spearmint",
+    "xylit24_white"]
 
-def printWarning(sentence):
-    print prefix + bcolors.WARNING + sentence + bcolors.ENDC
-
-prefix = bcolors.HEADER + "[Challenge Test] " + bcolors.ENDC
-
-
-''' waypoint used to test navigation '''
-wp_test_nav = "wp_test_nav1"
-
-
-''' point in the center of the living room, to filter location of humans '''
-# room_center = {'x':1.365, 'y':0.978, 'z':0.0, 'frame_id':"/map"}
-
-''' entity to inspect '''
-INSPECT_ENTITY_ID = "cabinet"
-INSPECT_ROOM_ID = "kitchen"
-
-'''Object types that can be recognized'''
-obj_type_human=['human']
-obj_type_drinks=['cola', 'fanta']
