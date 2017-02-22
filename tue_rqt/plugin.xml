@@ -1,0 +1,17 @@
+<library path="src">
+  <class name="State Machine Plugin" type="tue_rqt.state_machine.StateMachinePlugin" base_class_type="rqt_gui_py::Plugin">
+    <description>
+      A Python GUI for starting the different state machine
+    </description>
+    <qtgui>
+        <group>
+            <label>TUE</label>
+            <icon type="theme">folder</icon>
+            <statustip>TUE RQT Plugins.</statustip>
+        </group>
+      <label>State machine GUI</label>
+      <icon type="theme">system-help</icon>
+      <statustip>State machine GUI.</statustip>
+    </qtgui>
+  </class>
+</library>
