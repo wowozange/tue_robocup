@@ -14,17 +14,13 @@ inspection_places = [
 ]
 
 known_types = [
-    "coke",
-    "fanta",
-    "mentos",
-    "bifrutas",
-    "beer",
-    "coffee_pads",
-    "deodorant",
-    "ice_tea",
-    "sprite",
-    "tea",
-    "water",
-    "xylit24_spearmint",
-    "xylit24_white"]
-
+#        "beer",
+#        "bifrutas",
+        "coke",
+#        "deodorant",
+        "fanta",
+        "ice tea",
+        "mentos",
+#        "sponge",
+#        "tea",
+        "water"]
