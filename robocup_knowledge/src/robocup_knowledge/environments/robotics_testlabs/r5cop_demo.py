@@ -14,13 +14,13 @@ inspection_places = [
 ]
 
 known_types = [
-#        "beer",
-#        "bifrutas",
+        "beer",
+        "bifrutas",
         "coke",
-#        "deodorant",
+        "deodorant",
         "fanta",
         "ice tea",
         "mentos",
 #        "sponge",
-#        "tea",
+        "tea",
         "water"]
