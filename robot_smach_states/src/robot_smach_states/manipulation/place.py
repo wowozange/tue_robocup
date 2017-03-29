@@ -114,7 +114,8 @@ class Put(smach.State):
             height = 0.8
 
         # Pre place
-        if not arm.send_goal(place_pose_bl, timeout=10, pre_grasp=False):
+        if not arm.send_goal(kdlFrameStampedFromXYZRPY(place_pose_bl.frame.p.x(), place_pose_bl.frame.p.y(), height, 0.0, 0.0, 0.0, frame_id="/{0}/base_link".format(self._robot.robot_name)),
+                            timeout=10, pre_grasp=False):
             # If we can't place, try a little closer
             place_pose_bl.frame.p.x(place_pose_bl.frame.p.x() - 0.05)
 
@@ -124,11 +125,6 @@ class Put(smach.State):
                 rospy.logwarn("Cannot pre-place the object")
                 arm.cancel_goals()
                 return 'failed'
-
-        # Place
-        if not arm.send_goal(kdlFrameStampedFromXYZRPY(place_pose_bl.frame.p.x(), place_pose_bl.frame.p.y(), height+0.15, 0.0, 0.0, 0.0, frame_id="/{0}/base_link".format(self._robot.robot_name)),
-                             timeout=10, pre_grasp=False):
-            rospy.logwarn("Cannot place the object, dropping it...")
 
         place_entity = arm.occupied_by
         if not place_entity:
