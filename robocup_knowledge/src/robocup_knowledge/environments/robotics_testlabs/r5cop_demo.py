@@ -5,7 +5,7 @@ inspection_places = [
     {"entity_id": "dinner_table",
      "room_id": "livingroom",
      "navigate_area": "near",
-     "segment_areas": ["on_top_of"]},
+     "segment_areas": ["on_top_of", "under"]},
 
     {"entity_id": "cabinet",
      "room_id": "kitchen",
