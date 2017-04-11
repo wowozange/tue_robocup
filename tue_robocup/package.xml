@@ -13,6 +13,7 @@
 
   <run_depend>challenge_final</run_depend>
   <run_depend>challenge_gpsr</run_depend>
+  <run_depend>challenge_spr</run_depend>
   <run_depend>challenge_manipulation</run_depend>
   <run_depend>challenge_navigation</run_depend>
   <run_depend>challenge_open</run_depend>

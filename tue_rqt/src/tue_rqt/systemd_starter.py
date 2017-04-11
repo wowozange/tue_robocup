@@ -11,20 +11,55 @@ import shlex
 import re
 import os
 import subprocess
-import glob
-
-import roslaunch, rospkg
 
 
-def ping(host):
-    sub = subprocess.Popen(["/bin/ping", "-c1", "-w100", host], stdout=subprocess.PIPE)
-    return sub.returncode == 0
+def error_dialog(title, text):
+    """
+    Helper function for creating a error dialog
+    :param title: Title of the dialog
+    :param text: Text of the dialog
+    """
+    msg = QMessageBox()
+    msg.setIcon(QMessageBox.Critical)
+    msg.setText(text)
+    msg.setWindowTitle(title)
+    msg.exec_()
 
 
-class StateMachinePlugin(Plugin):
+def info_dialog(title, text):
+    """
+    Helper function for creating a info dialog
+    :param title: Title of the dialog
+    :param text: Text of the dialog
+    """
+    msg = QMessageBox()
+    msg.setIcon(QMessageBox.Information)
+    msg.setText(text)
+    msg.setWindowTitle(title)
+    msg.exec_()
+
+
+def systemctl_start(host, service):
+    cmd = ['ssh', host, 'systemctl', '--user', 'start', service]
+
+    print "Executing command %s" % " ".join(cmd)
+
+    try:
+        sub = subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        out, err = sub.communicate()
+    except Exception as e:
+        return False, str(e)
+
+    if err:
+        return False, err
+
+    return True, out
+
+
+class SystemdStarterPlugin(Plugin):
 
     def __init__(self, context):
-        super(StateMachinePlugin, self).__init__(context)
+        super(SystemdStarterPlugin, self).__init__(context)
 
         # Add widget with layout
         self._widget = QWidget()
@@ -34,35 +69,13 @@ class StateMachinePlugin(Plugin):
         context.add_widget(self._widget)
         self._layout_specification = ""
 
-    @staticmethod
-    def _execute_service(service):
+    def _execute_service(self, service):
         if service:
-            print "hjio"
-
-    def _timer_callback(self, event):
-        rosnode_hostname = None
-
-        try:
-            state_machine_node = self._ros_master.lookupNode("state_machine")
-            rosnode_hostname = re.search("http://(.+?):\d+", state_machine_node).group(1)
-        except Exception as e:
-            print e
-
-        if rosnode_hostname:
-            try:
-                process = subprocess.Popen(["ssh", rosnode_hostname, "ps aux"], stdout=subprocess.PIPE);
-                output = process.communicate()[0]
-
-                # Now find the state machine process launch file
-                launch_file = re.search("launch/state_machines/(.+?).launch", output).group(1)
-
-                self._running_state_machine_edit.setText("%s (%s)" % (launch_file, rosnode_hostname))
-            except Exception as e:
-                print e
-
-            # self._running_state_machine_edit.setText(state_machine_node)
-        else:
-            self._running_state_machine_edit.setText("No state_machine node running ..")
+            ok, msg = systemctl_start(self._host, service)
+            if ok:
+                info_dialog("Succesfully started service %s" % service, msg if msg else "Started service")
+            else:
+                error_dialog("Failed to start service %s" % service, msg if msg else "Unknown error")
 
     def _get_button(self, service):
         button = QPushButton(service)
@@ -79,10 +92,6 @@ class StateMachinePlugin(Plugin):
         host_grid_layout = QGridLayout()
         host_grid_layout.addWidget(QLabel("Host = %s" % host), 0, 0)
 
-        self._host_state_edit = QLineEdit()
-        self._host_state_edit.setDisabled(True)
-        host_grid_layout.addWidget(self._host_state_edit, 0, 1)
-
         self._layout.addLayout(host_grid_layout)
 
         grid_layout = QGridLayout()
@@ -93,21 +102,7 @@ class StateMachinePlugin(Plugin):
 
         status_grid_layout = QGridLayout()
 
-        self._bringup_path_edit = QLineEdit()
-        self._bringup_path_edit.setDisabled(True)
-        status_grid_layout.addWidget(self._bringup_path_edit, 0, 0)
-
-        self._robot_bringup_path = os.getenv("ROBOT_BRINGUP_PATH")
-        self._bringup_path_edit.setText(self._robot_bringup_path)
-
-        self._running_state_machine_edit = QLineEdit()
-        self._running_state_machine_edit.setDisabled(True)
-        status_grid_layout.addWidget(self._running_state_machine_edit, 0, 1)
-
         self._layout.addLayout(status_grid_layout)
-
-        self._running_state_machine_timer = rospy.Timer(rospy.Duration(2), self._timer_callback)
-        self._ros_master = rosgraph.Master("")
 
     def trigger_configuration(self):
         result, ok = SettingsDialog.get_settings(self._host, self._layout_specification)

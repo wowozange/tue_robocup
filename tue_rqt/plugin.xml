@@ -1,7 +1,7 @@
 <library path="src">
-  <class name="State Machine Plugin" type="tue_rqt.state_machine.StateMachinePlugin" base_class_type="rqt_gui_py::Plugin">
+  <class name="ROS node monitor Plugin" type="tue_rqt.ros_node_monitor.ROSNodeMonitorPlugin" base_class_type="rqt_gui_py::Plugin">
     <description>
-      A Python GUI for starting the different state machine
+      A Python GUI for monitoring whether a node is running
     </description>
     <qtgui>
         <group>
@@ -9,9 +9,24 @@
             <icon type="theme">folder</icon>
             <statustip>TUE RQT Plugins.</statustip>
         </group>
-      <label>State machine GUI</label>
+      <label>ROS Node monitor GUI</label>
       <icon type="theme">system-help</icon>
-      <statustip>State machine GUI.</statustip>
+      <statustip>ROS Node monitor GUI.</statustip>
+    </qtgui>
+  </class>
+  <class name="Systemd starter Plugin" type="tue_rqt.systemd_starter.SystemdStarterPlugin" base_class_type="rqt_gui_py::Plugin">
+    <description>
+      A Python GUI for starting systemd services remotely
+    </description>
+    <qtgui>
+        <group>
+            <label>TUE</label>
+            <icon type="theme">folder</icon>
+            <statustip>TUE RQT Plugins.</statustip>
+        </group>
+      <label>Systemd starter GUI</label>
+      <icon type="theme">system-help</icon>
+      <statustip>Systemd starter GUI.</statustip>
     </qtgui>
   </class>
 </library>
