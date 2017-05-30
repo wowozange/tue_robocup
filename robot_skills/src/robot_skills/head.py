@@ -15,9 +15,6 @@ from image_recognition_msgs.msg import Annotation
 from sensor_msgs.msg import Image, RegionOfInterest
 from robot_part import RobotPart
 
-# TU/e
-from rgbd.srv import Project2DTo3D, Project2DTo3DRequest
-
 from .util import msg_constructors as msgs
 from .util.kdl_conversions import kdlVectorStampedToPointStamped, VectorStamped
 
@@ -90,8 +87,6 @@ class Head(RobotPart):
         # self._get_persons_srv = self.create_service_client('/detect_persons', GetPersons)
         self._get_persons_srv = self.create_service_client('/' + robot_name + '/person_detection/detect_persons', GetPersons)
 
-        self._projection_srv = self.create_service_client('/' + robot_name + '/top_kinect/project_2d_to_3d',
-                                                          Project2DTo3D)
 
         self._skeleton_pub = rospy.Publisher("skeleton_markers", MarkerArray, queue_size=100)
 
@@ -244,46 +239,6 @@ class Head(RobotPart):
         rospy.loginfo("got %d bytes of image data", len(image.data))
         return image
 
-    def project_roi(self, roi, frame_id=None):
-        """ Projects a region of interest of a depth image to a 3D Point. Hereto, a service is used
-
-        :param roi: sensor_msgs/RegionOfInterest
-        :param frame_id: if specified, the result is transformed into this frame id
-        :return: VectorStamped object
-        """
-        response = self.project_rois(rois=[roi]).points[0]
-
-        # Convert to VectorStamped
-        result = VectorStamped(x=response.point.x, y=response.point.y, z=response.point.z,
-                               frame_id=response.header.frame_id)
-
-        # If necessary, transform the point
-        if frame_id is not None:
-            print "Transforming roi to {}".format(frame_id)
-            result = result.projectToFrame(frame_id=frame_id, tf_listener=self.tf_listener)
-
-        # Return the result
-        return result
-
-    def project_rois(self, rois):
-        # Call the service with the provided Region of Interest
-        try:
-            points = self._projection_srv(rois=rois)
-        except rospy.ServiceException as e:
-            raise ValueError('project_roi failed', e)
-        else:
-            rospy.loginfo('project_rois response: %s', points)
-            return points
-
-    def _get_faces(self, image):
-        try:
-            r = self._recognize_srv(image=image)
-            rospy.loginfo('found %d face(s) in the image', len(r.recognitions))
-        except rospy.ServiceException as e:
-            rospy.logerr(e.message)
-            r = RecognizeResponse()
-        return r
-
     def learn_person(self, name='operator'):
         HEIGHT_TRESHOLD = 88
         WIDTH_TRESHOLD = 88
@@ -330,104 +285,6 @@ class Head(RobotPart):
     def detect_persons(self):
         image = self.get_image()
         return self._get_persons(image).detections
-
-    def detect_waving_persons(self):
-        persons = []
-        for person in self.detect_persons():
-            height = person.neck.y - person.nose.y
-            roi = RegionOfInterest(x_offset=person.nose.x - 10, y_offset=person.nose.y, width=20, height=height)
-            sides = []
-            for side in ['left', 'right']:
-                elbow = getattr(person, '%s_elbow' % side)
-                wrist = getattr(person, '%s_wrist' % side)
-                shoulder = getattr(person, '%s_shoulder' % side)
-
-                if math.isnan(elbow.confidence) or elbow.confidence < 0.4 or\
-                        math.isnan(wrist.confidence) or wrist.confidence < 0.4 or\
-                        math.isnan(shoulder.confidence) or shoulder.confidence < 0.4:
-                    continue
-
-                dx = elbow.x - wrist.x
-                dy = elbow.y - wrist.y
-                rospy.loginfo('%s arm: dx=%f dy=%f', side, dx, dy)
-
-                angle = math.atan2(dy, dx)
-                angle = math.degrees(angle)
-
-                rospy.loginfo('arm angle: %f', angle)
-
-                if angle < 45 or angle > 180 - 45:
-                    rospy.loginfo('skipping %s arm because its not pointing upwards', side)
-                    continue
-
-                if wrist.y < shoulder.y:
-                    rospy.loginfo('skipping %s arm because its not above the shoulder', side)
-
-                if dy < 50:
-                    rospy.loginfo('skipping %s arm because its not big enough', side)
-
-                if person not in persons:
-                    sides.append(side)
-
-            if sides:
-                persons.append(WavingResult(side=sides, roi=roi))
-
-        rospy.loginfo('found %d waving persons', len(persons))
-        return persons
-
-    def detect_persons_3d(self):
-        """
-        :return: [Skeleton]
-        """
-        width = 10 # px
-        height = 10 # px
-
-        persons = self.detect_persons()
-
-        person_slot_rois = []
-        for i, person in enumerate(persons):
-            for slot in person.__slots__:
-                detection = getattr(person, slot)
-                if detection.x == 0 or detection.y == 0:
-                    continue
-                x_offset = max(0, detection.x - width // 2)
-                y_offset = max(0, detection.y - height // 2)
-                width = width
-                height = height
-
-                roi = RegionOfInterest(x_offset=x_offset, y_offset=y_offset, width=width, height=height)
-                print((i, slot, roi))
-                person_slot_rois.append((i, slot, roi))
-
-        try:
-            input = [r for _, _, r in person_slot_rois]
-            rospy.loginfo('project input: %s', str(input))
-            ps = self.project_rois(input).points
-        except ValueError as e:
-            rospy.loginfo('project_rois failed: %s', e)
-            return []
-
-        skeletons = [dict() for _ in range(len(persons))]
-        for j, (person, slot, _) in enumerate(person_slot_rois):
-            p = ps[j]
-            if math.isnan(p.point.x) or math.isnan(p.point.y) or math.isnan(p.point.z):
-                rospy.loginfo('skipping %s because of invalid projection to 3d', slot)
-                continue
-            rospy.loginfo('adding point to person {}: {} at slot {}'.format(person, p.point, slot).replace('\n', ' '))
-            skeletons[person][slot] = p
-
-        for skeleton in skeletons:
-            zmin = float('inf')
-            for slot, point in skeleton.items():
-                if point.point.z < zmin:
-                    zmin = point.point.z
-
-            for slot, point in skeleton.items():
-                point.point.z = zmin
-
-        skeletons = [Skeleton(bodyparts) for bodyparts in skeletons]
-        self.visualize_skeletons(skeletons)
-        return skeletons
 
     def visualize_skeletons(self, skeletons):
         """
