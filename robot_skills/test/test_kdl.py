@@ -2,6 +2,7 @@
 
 import sys
 import rospy
+from copy import deepcopy
 
 import robot_skills.util.kdl_conversions as kdl_conversions
 import PyKDL as kdl
@@ -17,6 +18,9 @@ robot_name = sys.argv[1]
 rospy.init_node("kdl_test")
 
 robot = robot_constructor(robot_name)
+
+print "\nrobot.base.get_location().frame"
+print robot.base.get_location().frame
 
 print "\nrobot.base.get_location().frame.p"
 print robot.base.get_location().frame.p
@@ -57,3 +61,16 @@ print '\nfs = kdl_conversions.FrameStamped(kdl.Frame(kdl.Rotation.Quaternion(1, 
 print "fs.extractVectorStamped()"
 fs = kdl_conversions.FrameStamped(kdl.Frame(kdl.Rotation.Quaternion(1, 0, 0, 0), kdl.Vector(1, 2, 3)), "/map")
 print fs.extractVectorStamped()
+
+import PyKDL as kdl
+rot = kdl.Rotation.Quaternion(1, 0, 0, 0)
+trans = kdl.Vector(1, 2, 3)
+frame=kdl.Frame(rot, trans)
+print "\n\n"
+print "\nframe.p"
+print frame.p
+print "\nkdl.Frame(frame)"
+print kdl.Frame(frame)
+print "\nkdl.Frame(frame).p"
+print roskdl.Frame(frame).p
+
