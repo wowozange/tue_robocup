@@ -13,6 +13,7 @@ import tf
 
 from cb_planner_msgs_srvs.msg import LocalPlannerAction, OrientationConstraint, PositionConstraint, LocalPlannerGoal
 from cb_planner_msgs_srvs.srv import GetPlan, CheckPlan
+from actionlib_msgs.msg import GoalStatus
 
 from robot_part import RobotPart
 from .util import nav_analyzer
@@ -47,11 +48,13 @@ class LocalPlanner(RobotPart):
         self.__setState("controlling", None, None, plan)
 
     def cancelCurrentPlan(self):
-        state = self._action_client.get_state()
-        # Only cancel goal when pending or active
-        if state ==0 or state == 1:
-            self._action_client.cancel_goal()
-            self.__setState("idle")
+        if self._goal_handle:
+            state = self._action_client.get_state()
+            # Only cancel goal when pending or active
+            if state == GoalStatus.PENDING or state == GoalStatus.ACTIVE:
+                self._action_client.cancel_goal()
+                self.__setState("idle")
+
 
     def getGoalHandle(self):
         return self._goal_handle
@@ -178,7 +181,14 @@ class Base(RobotPart):
         return plan
 
     def force_drive(self, vx, vy, vth, timeout):
+        """ Forces the robot to drive by sending a command velocity directly to the base controller. N.B.: all collision
+        avoidance is bypassed.
 
+        :param vx: forward velocity in m/s
+        :param vy: sideways velocity in m/s
+        :param vth: rotational velocity in rad/s
+        :param timeout: duration for this motion in seconds
+        """
         # Cancel the local planner goal
         self.local_planner.cancelCurrentPlan()
 

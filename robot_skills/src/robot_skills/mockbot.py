@@ -9,7 +9,7 @@ import std_msgs.msg
 import tf
 from dragonfly_speech_recognition.msg import Choice
 from dragonfly_speech_recognition.srv import GetSpeechResponse
-from ed.msg import EntityInfo
+from ed_msgs.msg import EntityInfo
 from ed_sensor_integration.srv import UpdateResponse
 
 import arms
@@ -102,8 +102,6 @@ class Head(object):
         self.close = mock.MagicMock()
         self.set_pan_tilt = mock.MagicMock()
         self.send_goal = mock.MagicMock()
-        self.ults = mock.MagicMock()
-        self.ult = mock.MagicMock()
         self.cancel_goal = mock.MagicMock()
         self.reset = mock.MagicMock()
         self.look_at_hand = mock.MagicMock()
@@ -122,13 +120,19 @@ class Head(object):
         self.__doneCallback = mock.MagicMock()
 
 
+class Perception(object):
+    def __init__(self, *args, **kwargs):
+        self.reset = mock.MagicMock()
+        self.close = mock.MagicMock()
+
+
 class Lights(object):
     def __init__(self, *args, **kwargs):
         self.close = mock.MagicMock()
         self.set_color = mock.MagicMock()
+        self.set_color_colorRGBA = mock.MagicMock()
         self.on = mock.MagicMock()
         self.off = mock.MagicMock()
-        self.start_sinus = mock.MagicMock()
 
 
 class Speech(object):
@@ -194,8 +198,6 @@ class ED(object):
 
         self._person_names = []
 
-        self.learn_person = lambda name: True
-
     @property
     def _entities(self):
         return defaultdict(ED.generate_random_entity, self._dynamic_entities.items() + self._static_entities.items())
@@ -236,7 +238,6 @@ class Mockbot(robot.Robot):
         # Body parts
         self.base = Base()
         self.torso = Torso()
-        self.spindle = self.torso
         self.leftArm = Arm(self.robot_name, self.tf_listener, "left")
         self.rightArm = Arm(self.robot_name, self.tf_listener, "right")
         self.arms = {"left":self.leftArm, "right":self.rightArm}

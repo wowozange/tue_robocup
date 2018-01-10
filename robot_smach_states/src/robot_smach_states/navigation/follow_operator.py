@@ -166,6 +166,9 @@ class FollowOperator(smach.State):
             operator = None
 
         while not operator:
+            if self.preempt_requested():
+                return False
+
             if (rospy.Time.now() - start_time).to_sec() > self._operator_timeout:
                 return False
 
@@ -197,8 +200,8 @@ class FollowOperator(smach.State):
                                 learn_person_timeout = 10.0  # TODO: Parameterize
                                 num_detections = 0
                                 while num_detections < 5:
-                                    if self._robot.head.learn_person(self._operator_name):
-                                        num_detections+=1
+                                    if self._robot.perception.learn_person(self._operator_name):
+                                        num_detections += 1
                                     elif (rospy.Time.now() - learn_person_start_time).to_sec() > learn_person_timeout:
                                         self._robot.speech.speak("Please stand in front of me and look at me")
                                         operator = None
@@ -473,6 +476,9 @@ class FollowOperator(smach.State):
 
         i = 0
         while (rospy.Time.now() - start_time).to_sec() < operator_recovery_timeout:
+            if self.preempt_requested():
+                return False
+
             self._robot.head.look_at_point(head_goals[i])
             i += 1
             if i == len(head_goals):
@@ -484,8 +490,8 @@ class FollowOperator(smach.State):
             # a recognition contains a CategoricalDistribution
             # a CategoricalDistribution is a list of CategoryProbabilities
             # a CategoryProbability has a label and a float
-            raw_detections = self._robot.head.detect_faces()
-            best_detection = self._robot.head.get_best_face_recognition(raw_detections, "operator")
+            raw_detections = self._robot.perception.detect_faces()
+            best_detection = self._robot.perception.get_best_face_recognition(raw_detections, "operator")
 
             rospy.loginfo("best_detection = {}".format(best_detection))
             if best_detection:
@@ -494,7 +500,7 @@ class FollowOperator(smach.State):
                 roi = best_detection.roi
 
                 try:
-                    operator_pos_kdl = self._robot.head.project_roi(roi=roi, frame_id="map")
+                    operator_pos_kdl = self._robot.perception.project_roi(roi=roi, frame_id="map")
                 except Exception as e:
                     rospy.logerr("head.project_roi failed: %s", e)
                     return False
@@ -669,6 +675,9 @@ class FollowOperator(smach.State):
         self._time_started = rospy.Time.now()
 
         while not rospy.is_shutdown():
+
+            if self.preempt_requested():
+                return 'lost_operator'
 
             # 1) Track operator
             self._track_operator()

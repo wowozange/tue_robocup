@@ -1,55 +1,81 @@
 # Responsible: Sam
 
+## Procedure
+
+	I Start: 
+		The robot starts at a designated starting position and announces it wants to play riddles.
+
+	II Waiting and turn: 
+		The robot waits for 10 seconds while a crowd is merged on it’s back, then the robot must turn around (about 180deg) and find the crowd.
+
+	III Requesting an operator: 
+		After turning around, the robot must state the size of the crowd (including male and female count) and request for an operator (e.g. "Who want to play riddles with me?").
+
+	IV The riddle game: 
+		Standing in front of the robot, the operator will ask 5 questions. The robot must answer the question without asking confirmation. Questions will only be asked only once; no repetitions are allowed.
+
+	V Blind man's bluff game:
+		The crowd will reposition, making a circle around the robot. A random person from the crowd surrounding the robot will ask a question. The robot may
+			• Turn towards the person who asked the question and answer the question
+			• Directly answer the question without turning
+			• Turn towards the person and ask them to repeat the question
+		This process is repeated with 5 (possibly) different people. The game will end when the 5th question has been made. The robot must answer the question without asking confirmation. Questions may be repeated once.
+	
+	VI Leave:
+		The robot must leave the arena/test area after all questions have been asked or
+		when instructed to do so.
+
+## Scoring sheet of 2017, Japan:
+
+	Crowd:
+		State crowd’s size:								5
+		State crowd’s male/female count: 				10
+
+	Riddle game
+		Understanding question: 						5 × 5
+		Correctly answered a question: 					5 × 5
+		Answering all 5 riddle game question: 			5
+
+	Blind man’s bluff game:
+		Understanding question on the first attempt: 	5 × 10
+		Understanding question on the second attempt: 	5 × 5
+		Correctly answered a question: 					5 × 5
+		Turned towards person asking the question: 		5 × 10
+		Answering all 5 blind man’s bluff questions: 	5
+
+	Total score (excluding penalties and bonuses):		200
+
 ## Testing
 
 Launch procedure:
-```
-amigo-start
-amigo-free-mode
-rosrun challenge_spr challenge_spr.py amigo
-```
+	```
+	amigo-start
+	amigo-free-mode
+	amigo-challenge-spr
+	```
 
 Testing the detection individually:
-```
-rosrun challenge_spr detect.py amigo
-```
+	```
+	amigo-start
+	amigo-free-mode
+	rosrun challenge_spr detect.py amigo
+	```
 
-Start at the Riddle Game
-```
-rosrun challenge_spr riddle_game.py amigo
-```
+Testing the Riddle Game individually:
+	```
+	amigo-start
+	amigo-free-mode
+	rosrun challenge_spr riddle_game.py amigo
+	```
 
-Start at the Bluff Game
-```
-rosrun challenge_spr bluff_game.py amigo
-```
-
-## DONE
-
-- main scenario is ready
-- riddle_game and bluff_game are ready for standalone testing
-- riddle game works in simulation, should be tested on robot
-- bluff game works in simulation, should be tested on robot
-- detectCrowd:
-	- create robot.perception.getImage() skill
-		- create image listener
-		- grab one image
-	- create robot.perception.detectFaces(image)
-		- send the image to /amigo/face_recognition/recognize
-		- process the results
-- send data for the inspected crowd to the library
-- updated library with questions for crowd, arena and objects
+Testing the Bluff Game individually:
+	```
+	amigo-start
+	amigo-free-mode
+	rosrun challenge_spr bluff_game.py amigo
+	```
 
 ## TODO
 
-Riddle / Bluff games:
-
-- update library with predefined questions
-- remove WaitForPersonInFront state, substitute it with timeout and Say state
-- implement the sound localization into Bluff game
-- detect.py
-	- use skybiometry node and service
-	- use face_recognition node and service
-	- change topic of local kinect to the same topic as robot kinect
-- head.py
-    - Change topic name of get_image so it depending on robot name
+	- implement posture detection, color detection and position detection for the crowd questions
+	- update library with crowd questions for position, posture etc.
