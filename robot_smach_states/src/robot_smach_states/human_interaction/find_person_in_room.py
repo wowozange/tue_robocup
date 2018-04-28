@@ -1,29 +1,22 @@
-#! /usr/bin/env python
-
 # System
 import math
 
-import geometry_msgs
 # ROS
+import geometry_msgs
 import PyKDL as kdl
 import rospy
 import smach
+
+# TU/e Robotics
 import robot_smach_states as states
 import robot_smach_states.util.designators as ds
 from robot_skills.util import kdl_conversions
-from robocup_knowledge import load_knowledge
-import sys
-from robot_smach_states.util.startup import startup
 
-challenge_knowledge = load_knowledge('challenge_help_me_carry')
 
-##########################################################################################################################################
-class Person(object):
-    """
-    :param person.name: available learned persons. Supported are: Janno, Rein, Ramon, Rokus, Henk, Max,
-    Loy, Matthijs, Kevin, Josja, Lars, Ainse.
-    """
 class LearnOperator(smach.State):
+    """ Learns an operator
+
+    """
     def __init__(self, robot, operator_timeout=20, ask_follow=True, learn_face=True, learn_person_timeout = 10.0):
         smach.State.__init__(self, outcomes=['follow', 'Failed', 'Aborted'],
                              input_keys=['operator_learn_in'],
@@ -77,15 +70,27 @@ class LearnOperator(smach.State):
         userdata.operator_learn_out = operator
         return 'follow'
 
-#########################################################################################################################
 
 class FindPerson(smach.State):
-    def __init__(self, robot, person_label='operator', lost_timeout=60, look_distance=2.0, probability_threshold=1.5):
+    """ Smach state to find a person by looking around and seeing if it is sufficiently probable that this is the person
+    the robot's looking for
+
+    """
+    def __init__(self, robot, person_label='operator', timeout=60, look_distance=2.0, probability_threshold=1.5):
+        """ Constructor
+
+        :param robot: Robot API object
+        :param person_label: (str) label with which the person is known by the people recognition node
+        :param timeout: (float) time allowed to find the person
+        :param look_distance: (float) distance to look for the person
+        :param probability_threshold: (float) threshold for the recognition. If the classification probability exceeds
+        this threshold, the robot will be satisfied (although it's unclear how a probability can exceed 1)
+        """
         smach.State.__init__(self, outcomes=['found', 'failed'])
 
         self._robot = robot
         self.person_label = person_label
-        self._lost_timeout = lost_timeout
+        self._lost_timeout = timeout
         self._look_distance = look_distance
         self._face_pos_pub = rospy.Publisher(
             '/%s/find_person/person_detected_face' % robot.robot_name,
@@ -93,22 +98,14 @@ class FindPerson(smach.State):
         self._probability_threshold = probability_threshold
 
     def execute(self, userdata=None):
-        # person = loadPerson(person_label=self.person_label)
-        rospy.loginfo("Trying to find {}".format(self.person_label)) #person.name))
+        rospy.loginfo("Trying to find {}".format(self.person_label))
         self._robot.head.look_at_standing_person()
-        self._robot.speech.speak("{}, please look at me while I am looking for you".format(self.person_label), # person.name),
+        self._robot.speech.speak("{}, please look at me while I am looking for you".format(self.person_label),
                                  block=False)
         start_time = rospy.Time.now()
 
         look_distance = 2.0  # magic number 4
-        look_angles = [0.0,  # magic numbers
-                       math.pi / 6,
-                       math.pi / 4,
-                       math.pi / 2.3,
-                       0.0,
-                       -math.pi / 6,
-                       -math.pi / 4,
-                       -math.pi / 2.3]
+        look_angles = [math.pi / a if abs(a) > 0 else 0.0 for a in [0.0, 6.0, 4.0, 2.3, 0.0, -6.0, -4.0, -2.3]]
         head_goals = [kdl_conversions.VectorStamped(x=look_distance * math.cos(angle),
                                                     y=look_distance * math.sin(angle), z=1.7,
                                                     frame_id="/%s/base_link" % self._robot.robot_name)
@@ -153,10 +150,9 @@ class FindPerson(smach.State):
 
                 return 'found'
             else:
-                print "Could not find {} in the {}".format(self.person_label, self.area)
+                rospy.logwarn("Could not find {} in the {}".format(self.person_label, self.area))
 
-        self._robot.head.close()
-        rospy.sleep(2.0)
+        self._robot.head.cancel_goal()
         return 'failed'
 
 
@@ -190,11 +186,13 @@ class _DecideNavigateState(smach.State):
         return "none"
 
 
-class FindPersoninRoom(smach.StateMachine):
+class FindPersonInRoom(smach.StateMachine):
 
     def __init__(self, robot, area, name):
         """ Constructor
         :param robot: robot object
+        :param area: (str) designates the room where the robot should look for the person
+        :param name: (str) name of the person to look for
         """
         smach.StateMachine.__init__(self, outcomes=["found", "not_found"])
 
@@ -226,22 +224,3 @@ class FindPersoninRoom(smach.StateMachine):
             smach.StateMachine.add("FIND_PERSON", FindPerson(robot=robot, person_label=name),
                                    transitions={"found": "found",
                                                 "failed": "not_found"})
-
-if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        robot_name = sys.argv[1]
-        area = sys.argv[2]
-        name = sys.argv[3]
-    else:
-        print "Please provide robot name as argument."
-        exit(1)
-
-    if robot_name == "amigo":
-        from robot_skills.amigo import Amigo as Robot
-    elif robot_name == "sergio":
-        from robot_skills.sergio import Sergio as Robot
-
-    rospy.init_node('test_follow_operator')
-    robot = Robot()
-    sm = FindPersoninRoom(robot, area, name)
-    sm.execute()
