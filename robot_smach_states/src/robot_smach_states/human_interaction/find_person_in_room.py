@@ -198,6 +198,7 @@ class FindPersonInRoom(smach.StateMachine):
 
         waypoint_designator = ds.EntityByIdDesignator(robot=robot, id=area + "_waypoint")
         room_designator = ds.EntityByIdDesignator(robot=robot, id=area)
+        found_operator_designator = ds.EntityByIdDesignator(robot=robot, id=name)
 
         with self:
             smach.StateMachine.add("DECIDE_NAVIGATE_STATE",
@@ -222,5 +223,13 @@ class FindPersonInRoom(smach.StateMachine):
 
             # Wait for the operator to appear and detect what he's pointing at
             smach.StateMachine.add("FIND_PERSON", FindPerson(robot=robot, person_label=name),
-                                   transitions={"found": "found",
+                                   transitions={"found": "NAVIGATE_TO_OPERATOR",
                                                 "failed": "not_found"})
+
+            # Drive to the operator
+            smach.StateMachine.add("NAVIGATE_TO_OPERATOR",
+                                   states.NavigateToObserve(robot=robot,
+                                                            entity_designator=found_operator_designator, radius=0.75),
+                                   transitions={"arrived": "found",
+                                                "unreachable": "not_found",
+                                                "goal_not_defined": "not_found"})
