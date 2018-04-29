@@ -23,6 +23,7 @@ if __name__ == "__main__":
         sys.exit()
 
     robot = Robot()
+    rospy.sleep(1.0)
 
     detect_state = DetectFace(robot=robot)
     detect_state.execute(None)
