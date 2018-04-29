@@ -23,8 +23,10 @@ class DetectFace(smach.State):
     def execute(self, userdata):
 
         # Acquire the image and detect the faces in it
+        self._robot.head.look_at_standing_person()
         image = self._robot.perception.get_image()
         faces = self._robot.perception.detect_faces(image=image)
+        self._robot.head.close()
 
         # Check result
         if not faces:
