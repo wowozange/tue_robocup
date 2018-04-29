@@ -25,6 +25,7 @@ class DetectFace(smach.State):
         # Acquire the image and detect the faces in it
         self._robot.head.look_at_standing_person(timeout=5.0)
         image = self._robot.perception.get_image()
+        self._robot.speech.speak('shutter')
         faces = self._robot.perception.detect_faces(image=image)
         self._robot.head.close()
 
@@ -46,6 +47,7 @@ class DetectFace(smach.State):
 
         # If we have found a label, publish this as well
         self._pub_label.publish(best_match['label'])
+        self._robot.speech.speak("Hey, " + best_match['label'] + 'is at the door')
 
         # Return
         rospy.loginfo("DetectFace, best match: {}".format(best_match['label']))
