@@ -47,7 +47,7 @@ class DetectFace(smach.State):
 
         # If we have found a label, publish this as well
         self._pub_label.publish(best_match['label'])
-        self._robot.speech.speak("Hey, " + best_match['label'] + 'is at the door')
+        self._robot.speech.speak("Hey, " + best_match['label'] + ' is at the door')
 
         # Return
         rospy.loginfo("DetectFace, best match: {}".format(best_match['label']))
