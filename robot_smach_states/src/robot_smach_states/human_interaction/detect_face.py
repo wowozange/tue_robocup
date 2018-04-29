@@ -28,6 +28,9 @@ class DetectFace(smach.State):
         faces = self._robot.perception.detect_faces(image=image)
         self._robot.head.close()
 
+        # Always publish the image
+        self._pub_image.publish(image)
+
         # Check result
         if not faces:
             rospy.logerr("DetectFaces: did not detect any faces")
@@ -41,7 +44,7 @@ class DetectFace(smach.State):
                     best_match = {'index': index, 'face': face, 'label': probability.label,
                                   'probability': probability.probability}
 
-        self._pub_image.publish(image)
+        # If we have found a label, publish this as well
         self._pub_label.publish(best_match['label'])
 
         # Return
