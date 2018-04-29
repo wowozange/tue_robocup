@@ -199,7 +199,7 @@ for name in names:
 # BRING_TARGET[{"id": X, "type": person}] -> BRING_NAME[X]
 
 grammar += """
-OPERATOR[{"type": "person", "id": "operator"}] -> me
+OPERATOR[{"type": "person", "id": "operator"}] -> me | this guy
 BRING_NAME -> OPERATOR | BRING_PERSON
 
 BRING_TARGET[X] -> the ROOM_OR_LOCATION[X]
