@@ -1,7 +1,7 @@
 from robocup_knowledge import knowledge_loader
 common = knowledge_loader.load_knowledge("common")
 
-names = ['josja', 'lars', 'janno', 'loy', 'rein', 'kevin', 'ramon', 'max', 'matthijs', 'raphael', 'henk']
+names = ['josja', 'lars', 'janno', 'loy', 'rein', 'kevin', 'ramon', 'max', 'matthijs', 'raphael', 'henk', 'rokus']
 
 not_understood_sentences = [
         "I'm so sorry! Can you please speak louder and slower? And wait for the ping!",
