@@ -31,7 +31,7 @@ class DirtyNode:
         rospy.loginfo("Starting the vieze node")
 
     def _image_cb(self, image):
-        self.learn_person(image=image)
+        self.learn_person(image=image, name="this_guy")
 
     def learn_person(self, image, name='operator'):
         # HEIGHT_TRESHOLD = 88
