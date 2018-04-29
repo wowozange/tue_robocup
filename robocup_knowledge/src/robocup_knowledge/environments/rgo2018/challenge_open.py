@@ -10,9 +10,7 @@ not_understood_sentences = [
         "All this noise is messing with my audio. Try again"
     ]
 
-initial_pose = "initial_pose_2"
-starting_pose = "gpsr_meeting_point"
-exit_waypoint = "gpsr_exit_door_2"
+door_waypoint_id = "waypoint_door_final"
 
 grammar_target = "T"
 
@@ -66,7 +64,7 @@ for cat in common.object_categories:
 for name in names:
     grammar += "\nNAMED_PERSON[{'type': 'person', 'id': '%s'}] -> %s" % (name, name)
 
-grammar += '\nLOCATION[{"id": "exit_4_rips", "type": "waypoint"}] -> door | exit | entrance'
+grammar += '\nLOCATION[{"id": "' + door_waypoint_id + '", "type": "waypoint"}] -> door | exit | entrance'
 
 
 ###############################################################################
