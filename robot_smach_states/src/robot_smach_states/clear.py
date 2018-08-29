@@ -11,7 +11,7 @@ from robot_skills.classification_result import ClassificationResult
 
 import robot_smach_states as states
 from robot_smach_states.util.designators import check_type
-from robot_smach_states.util.designators import VariableDesignator, EdEntityDesignator, EntityByIdDesignator, UnoccupiedArmDesignator
+from robot_smach_states.util.designators import VariableDesignator, EdEntityDesignator, EntityByIdDesignator, UnoccupiedArmDesignator, EmptySpotDesignator
 
 class SelectEntity(smach.State):
     def __init__(self, robot, entitity_classifications_designator, selected_entity_designator):
@@ -74,10 +74,8 @@ class Clear(smach.StateMachine):
         arm_des = UnoccupiedArmDesignator(robot.arms, robot.arms['left']).lockable()
         arm_des.lock()
 
-        place_position = states.util.designators.EmptySpotDesignator(self._robot, EdEntityDesignator(
-                                                                        self._robot, id=self.context.location.id),
-                                                                     area="on_top_of"
-                                                                     )
+        place_position = EmptySpotDesignator(robot, EdEntityDesignator(robot, id=self.context.location.id),
+                                             area="on_top_of")
 
         with self:
             smach.StateMachine.add('INSPECT_SOURCE_ENTITY',
@@ -107,5 +105,5 @@ class Clear(smach.StateMachine):
 
             smach.StateMachine.add('PLACE',
                                    states.Place(robot, selected_entity_designator, place_position, arm_des),
-                                   transitions={"done": "SAY_PLACE_SUCCESS", "failed": "SAY_PLACE_FAILED"})
+                                   transitions={'done': 'INSPECT_SOURCE_ENTITY', 'failed': 'failed'})
 
