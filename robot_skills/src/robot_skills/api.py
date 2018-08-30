@@ -42,10 +42,12 @@ class Api(RobotPart):
         except TimeoutException as e:
             if callable(self._post_hook):
                 self._post_hook()
+            self.restart_dragonfly()
             raise e
 
         if callable(self._post_hook):
             self._post_hook()
+        self.restart_dragonfly()
 
         return answer
 
