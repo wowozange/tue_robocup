@@ -7,4 +7,3 @@ from startup import *
 from utility import *
 from world_model import *
 from check_ebutton import *
-from count_objects_on_location import *

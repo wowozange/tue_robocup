@@ -25,9 +25,7 @@
 		The robot must leave the arena/test area after all questions have been asked or
 		when instructed to do so.
 
-## Scoring sheet of 2018, Montreal:
-
-	The maximum time for this test is 5 minutes!
+## Scoring sheet of 2017, Japan:
 
 	Crowd:
 		State crowd’s size:								5
@@ -46,8 +44,6 @@
 		Answering all 5 blind man’s bluff questions: 	5
 
 	Total score (excluding penalties and bonuses):		200
-
-	Outstanding performance:							20
 
 ## Testing
 
@@ -81,19 +77,5 @@ Testing the Bluff Game individually:
 
 ## TODO
 
-	Predefined questions:
-		- implement "What was the last (previous) question?"
-		- update the 10 predefined questions at Montreal
-
-	Arena questions:
-		- implement "How many chairs are in the dining room?"
-
-	Crowd questions:
-		- implement Posture and Position detection
-		- implement Color of shirt detection
-		- implement "How old do you think I am?"
-		- implement "Am I a man or a woman?"
-
-	Object questions:
-		- implement Count object at location
-		- implement "What objects are at location?"
+	- implement posture detection, color detection and position detection for the crowd questions
+	- update library with crowd questions for position, posture etc.

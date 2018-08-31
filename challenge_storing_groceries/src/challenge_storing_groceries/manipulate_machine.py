@@ -1,6 +1,3 @@
-# system
-import numpy as np
-
 # ROS
 import rospy
 import smach
@@ -15,22 +12,20 @@ from entity_description_designator import EntityDescriptionDesignator
 # from config import TABLE, GRAB_SURFACE, DEFAULT_PLACE_ENTITY, DEFAULT_PLACE_AREA, CABINET
 from config import GRAB_SURFACE
 from config import MIN_GRAB_OBJECT_HEIGHT, MAX_GRAB_OBJECT_WIDTH
-from inspect_shelves import InspectShelves
-from place_with_alike_designator import PlaceWithAlikeObjectDesignator
 
 
 class DefaultGrabDesignator(ds.Designator):
     """ Designator to pick the closest item on top of the table to grab. This is used for testing
 
     """
-    def __init__(self, robot, surface_designator, area_description, name=None):
+    def __init__(self, robot, surface_designator, area_description):
         """ Constructor
 
         :param robot: robot object
         :param surface_designator: designator for the object to grab from
         :param area_description: string with id of the area where the object should be located in
         """
-        super(DefaultGrabDesignator, self).__init__(resolve_type=robot_skills.util.entity.Entity, name=name)
+        super(DefaultGrabDesignator, self).__init__(resolve_type=robot_skills.util.entity.Entity)
 
         self._robot = robot
         self._surface_designator = surface_designator
@@ -88,9 +83,23 @@ class GrabSingleItem(smach.StateMachine):
 
         # Create designators
         self.empty_arm_designator = ds.UnoccupiedArmDesignator(robot.arms, robot.leftArm, name="empty_arm_designator")
-        self.grab_designator = grab_designator
+        self.grab_designator = ds.LockToId(robot=robot, to_be_locked=grab_designator)
 
         with self:
+            @smach.cb_interface(outcomes=["locked"])
+            def lock(userdata=None):
+                """ 'Locks' a locking designator """
+                # This determines that self.current_item cannot not resolve to a new value until it is unlocked again.
+                self.grab_designator.lock()
+                if self.grab_designator.resolve():
+                    rospy.loginfo("Current_item is now locked to {0}".format(self.grab_designator.resolve().id))
+
+                return "locked"
+
+            smach.StateMachine.add("LOCK_ITEM",
+                                   smach.CBState(lock),
+                                   transitions={'locked': 'ANNOUNCE_ITEM'})
+
             smach.StateMachine.add("ANNOUNCE_ITEM",
                                    states.Say(robot, EntityDescriptionDesignator(self.grab_designator,
                                                                                  name="current_item_desc"),
@@ -99,8 +108,24 @@ class GrabSingleItem(smach.StateMachine):
 
             smach.StateMachine.add("GRAB_ITEM",
                                    states.Grab(robot, self.grab_designator, self.empty_arm_designator),
-                                   transitions={'done': 'succeeded',
-                                                'failed': 'failed'})
+                                   transitions={'done': 'UNLOCK_ITEM_SUCCEED',
+                                                'failed': 'UNLOCK_ITEM_FAIL'})
+
+            @smach.cb_interface(outcomes=["unlocked"])
+            def lock(userdata=None):
+                """ 'Locks' a locking designator """
+                # This determines that self.current_item cannot not resolve to a new value until it is unlocked again.
+                self.grab_designator.unlock()
+
+                return "unlocked"
+
+            smach.StateMachine.add("UNLOCK_ITEM_SUCCEED",
+                                   smach.CBState(lock),
+                                   transitions={'unlocked': 'succeeded'})
+
+            smach.StateMachine.add("UNLOCK_ITEM_FAIL",
+                                   smach.CBState(lock),
+                                   transitions={'unlocked': 'failed'})
 
 
 class PlaceSingleItem(smach.State):
@@ -139,7 +164,7 @@ class PlaceSingleItem(smach.State):
             return "failed"
 
         # Try to place the object
-        item = ds.Designator(arm.occupied_by)
+        item = ds.EdEntityDesignator(robot=self._robot, id=arm.occupied_by.id)
         arm_designator = ds.ArmDesignator(all_arms={arm.side: arm}, preferred_arm=arm)
         place = states.Place(robot=self._robot, item_to_place=item, place_pose=self.place_designator, arm=arm_designator)
         result = place.execute()
@@ -152,47 +177,6 @@ class PlaceSingleItem(smach.State):
             handover.execute()
 
         return "succeeded" if result == "done" else "failed"
-
-
-class LockToFrameStamped(ds.Designator):
-    """A designator for FrameStamped may generate a different FrameStamped every time.
-    By locking, it returns the same f.s. everytime while locked"""
-
-    def __init__(self, to_be_locked, name=None):
-        """ Constructor
-
-        :param robot: robot object
-        :param to_be_locked: designator to be locked
-        :param name: (optional) might come in handy for debugging
-        """
-        super(LockToFrameStamped, self).__init__(resolve_type=to_be_locked.resolve_type, name=name)
-        self.to_be_locked = to_be_locked
-        self._locked = False
-
-        self._locked_value = None
-
-    def lock(self):
-        self._locked = True
-
-    def unlock(self):
-        self._locked = False
-
-    def _resolve(self):
-        if self._locked:  # If we should resolve to a remembered thing
-            if not self._locked_value:  # but we haven't remembered anything yet
-                fs = self.to_be_locked.resolve()  # Then find out what we should remember
-                if fs:  # If we can find what to remember
-                    self._locked_value = fs  # remember!
-                return fs
-            else:  # If we do remember something already, recall that remembered ID:
-                return self._locked_value
-        else:
-            fs = self.to_be_locked.resolve()
-            rospy.loginfo("{0} resolved to {1}, but is *not locked* to it".format(self, fs))
-            return fs
-
-    def __repr__(self):
-        return "LockToFrameStamped({})._locked = {}".format(self.to_be_locked, self._locked)
 
 
 class ManipulateMachine(smach.StateMachine):
@@ -217,28 +201,22 @@ class ManipulateMachine(smach.StateMachine):
         """
         smach.StateMachine.__init__(self, outcomes=["succeeded", "failed"])
 
-        self.grab_designator_1 = grab_designator_1
-        self.grab_designator_2 = grab_designator_2
-
         # Create designators
         self.table_designator = ds.EntityByIdDesignator(robot, id="temp")  # will be updated later on
-
-        # import ipdb; ipdb.set_trace()
-        if self.grab_designator_1 is None:
-            self.grab_designator_1 = ds.LockingDesignator(DefaultGrabDesignator(robot=robot, surface_designator=self.table_designator,
-                                                      area_description=GRAB_SURFACE,
-                                                      name="grab_1"))
+        if grab_designator_1 is None:
+            grab_designator_1 = DefaultGrabDesignator(robot=robot, surface_designator=self.table_designator,
+                                                      area_description=GRAB_SURFACE)
+        if grab_designator_2 is None:
+            grab_designator_2 = DefaultGrabDesignator(robot=robot, surface_designator=self.table_designator,
+                                                      area_description=GRAB_SURFACE)
         self.cabinet = ds.EntityByIdDesignator(robot, id="temp")  # will be updated later on
 
-        self.place_designator1 = LockToFrameStamped(PlaceWithAlikeObjectDesignator(robot=robot,
-                                                                                   entity_to_place_designator=self.grab_designator_1,
-                                                                                   place_location_designator=self.cabinet,
-                                                                                   areas=['shelf3'],
-                                                                                   name="place_1",
-                                                                                   debug=False
-                                                                                   ))
-
-        self.placeaction1 = PlaceSingleItem(robot=robot, place_designator=self.place_designator1)
+        self.place_entity_designator = ds.EdEntityDesignator(robot=robot, id="temp")
+        self.place_designator = ds.EmptySpotDesignator(robot=robot,
+                                                       place_location_designator=self.place_entity_designator,
+                                                       area="temp")
+        self.placeaction1 = PlaceSingleItem(robot=robot, place_designator=self.place_designator)
+        self.placeaction2 = PlaceSingleItem(robot=robot, place_designator=self.place_designator)
 
         with self:
 
@@ -275,73 +253,34 @@ class ManipulateMachine(smach.StateMachine):
                                        transitions={"done": "WRITE_PDF",
                                                     "failed": "failed"})
 
-                smach.StateMachine.add("WRITE_PDF", pdf_writer, transitions={"done": "LOCK_ALL"})
+                smach.StateMachine.add("WRITE_PDF", pdf_writer, transitions={"done": "GRAB_ITEM_1"})
             else:
                 smach.StateMachine.add("INSPECT_TABLE", states.Inspect(robot=robot, entityDes=self.table_designator,
                                                                        objectIDsDes=None, searchArea=GRAB_SURFACE,
                                                                        navigation_area="in_front_of"),
-                                       transitions={"done": "LOCK_ALL",
+                                       transitions={"done": "GRAB_ITEM_1",
                                                     "failed": "failed"})
 
-            @smach.cb_interface(outcomes=["locked"])
-            def lock(userdata=None):
-                # import ipdb; ipdb.set_trace()
-                self.grab_designator_1.lock()
-                self.place_designator1.lock()
+            smach.StateMachine.add("GRAB_ITEM_1", GrabSingleItem(robot=robot, grab_designator=grab_designator_1),
+                                   transitions={"succeeded": "GRAB_ITEM_2",
+                                                "failed": "GRAB_ITEM_2"})
 
-                rospy.loginfo(self.grab_designator_1)
-                rospy.loginfo(self.place_designator1)
-
-                rospy.loginfo("All designators locked")
-
-                return "locked"
-
-            @smach.cb_interface(outcomes=["unlocked"])
-            def unlock(userdata=None):
-                # import ipdb; ipdb.set_trace()
-                self.grab_designator_1.unlock()
-                self.place_designator1.unlock()
-
-                rospy.loginfo(self.grab_designator_1)
-                rospy.loginfo(self.place_designator1)
-
-                rospy.loginfo("All designators UNlocked")
-
-                return "unlocked"
-
-            smach.StateMachine.add("LOCK_ALL",
-                                   smach.CBState(lock),
-                                   transitions={'locked': 'GRAB_ITEM_1'})
-
-            smach.StateMachine.add("GRAB_ITEM_1", GrabSingleItem(robot=robot, grab_designator=self.grab_designator_1),
+            smach.StateMachine.add("GRAB_ITEM_2", GrabSingleItem(robot=robot, grab_designator=grab_designator_2),
                                    transitions={"succeeded": "MOVE_TO_PLACE",
-                                                "failed": "failed"})
+                                                "failed": "MOVE_TO_PLACE"})
 
             smach.StateMachine.add("MOVE_TO_PLACE",
                                    states.NavigateToSymbolic(robot,
                                                              {self.cabinet: "in_front_of"},
                                                              self.cabinet),
-                                   transitions={'arrived': 'INSPECT_SHELVES',
-                                                'unreachable': 'INSPECT_SHELVES',
-                                                'goal_not_defined': 'INSPECT_SHELVES'})
-
-            smach.StateMachine.add("INSPECT_SHELVES",
-                                   InspectShelves(robot, self.cabinet),
-                                   transitions={'succeeded': 'WRITE_PDF_SHELVES',
-                                                'nothing_found': 'WRITE_PDF_SHELVES',
-                                                'failed': 'WRITE_PDF_SHELVES'})
-
-            smach.StateMachine.add("WRITE_PDF_SHELVES", pdf_writer, transitions={"done": "PLACE_ITEM_1"})
+                                   transitions={'arrived': 'PLACE_ITEM_1',
+                                                'unreachable': 'PLACE_ITEM_1',
+                                                'goal_not_defined': 'PLACE_ITEM_1'})
 
             smach.StateMachine.add("PLACE_ITEM_1", self.placeaction1,
-                                   transitions={"succeeded": "UNLOCK_ALL_SUCCEEDED",
-                                                "failed": "UNLOCK_ALL_FAILED"})
+                                   transitions={"succeeded": "PLACE_ITEM_2",
+                                                "failed": "PLACE_ITEM_2"})
 
-            smach.StateMachine.add("UNLOCK_ALL_SUCCEEDED",
-                                   smach.CBState(unlock),
-                                   transitions={'unlocked': 'succeeded'})
-            smach.StateMachine.add("UNLOCK_ALL_FAILED",
-                                   smach.CBState(unlock),
-                                   transitions={'unlocked': 'failed'})
-
-
+            smach.StateMachine.add("PLACE_ITEM_2", self.placeaction2,
+                                   transitions={"succeeded": "succeeded",
+                                                "failed": "failed"})
