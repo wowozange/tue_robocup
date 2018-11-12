@@ -4,15 +4,13 @@ project(challenge_restaurant)
 set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  rospy
-  robot_smach_states
-  robot_skills
-  sensor_msgs
-  image_transport
-  image_geometry
-  pcl_ros
   depth_image_proc
+  image_geometry
+  image_transport
+  pcl_conversion
+  pcl_ros
+  roscpp
+  sensor_msgs
   message_generation
 )
 
@@ -32,4 +30,4 @@ include_directories(
 )
 add_executable(get_normal_score_node src/get_normal_score_node.cpp)
 target_link_libraries(get_normal_score_node ${catkin_LIBRARIES})
-add_dependencies(get_normal_score_node ${PROJECT_NAME}_gencpp ${${PROJECT_NAME}_EXPORTED_TARGETS})
+add_dependencies(get_normal_score_node ${${PROJECT_NAME}_EXPORTED_TARGETS})
