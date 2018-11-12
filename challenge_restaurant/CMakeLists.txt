@@ -7,7 +7,7 @@ find_package(catkin REQUIRED COMPONENTS
   depth_image_proc
   image_geometry
   image_transport
-  pcl_conversion
+  pcl_conversions
   pcl_ros
   roscpp
   sensor_msgs
@@ -31,4 +31,4 @@ include_directories(
 )
 add_executable(get_normal_score_node src/get_normal_score_node.cpp)
 target_link_libraries(get_normal_score_node ${catkin_LIBRARIES})
-add_dependencies(get_normal_score_node ${${PROJECT_NAME}_EXPORTED_TARGETS})
+add_dependencies(get_normal_score_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
