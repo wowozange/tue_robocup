@@ -1,17 +1,16 @@
-# System
 import math
 import threading
 
-# ROS
-from geometry_msgs.msg import Twist
 import rospy
 import smach
+from geometry_msgs.msg import Twist
 
 
 class TrackFace(smach.State):
     """ State to track the face of an operator. If the face is lost (or cannot be found), "lost" is returned. Otherwise,
      "aborted" is returned
      """
+
     def __init__(self, robot, name="operator"):
         """ Constructor
         :param robot: robot object
@@ -56,7 +55,7 @@ class TrackFace(smach.State):
         # Start the breakout thread
         breakout_thread = threading.Thread(self._breakout_checker)
         breakout_thread.start()
-        
+
         rate = rospy.Rate(15.0)
 
         # For now, set a timeout for 60 seconds
@@ -103,7 +102,7 @@ class TrackFace(smach.State):
         # a recognition constains a CategoricalDistribution
         # a CategoricalDistribution is a list of CategoryProbabilities
         # a CategoryProbability has a label and a float
-        raw_detections = self._robot.head.detect_faces()
+        raw_detections = self._robot.perception.detect_faces()
 
         # Only take detections with operator
         detections = []
@@ -126,9 +125,9 @@ class TrackFace(smach.State):
         # print "Best detection: {}".format(best_detection)
         roi = best_detection.roi
         try:
-            operator_pos_kdl = self._robot.head.project_roi(roi=roi, frame_id="map")
+            operator_pos_kdl = self._robot.perception.project_roi(roi=roi, frame_id="map")
         except Exception as e:
-            rospy.logerr("head.project_roi failed: %s", e)
+            rospy.logerr("perception.project_roi failed: %s", e)
             return None
 
         return operator_pos_kdl
@@ -150,7 +149,6 @@ class TrackFace(smach.State):
             msg = Twist()
             # Threshold (approximately 30 degrees)
             if abs(self._angle) > 0.5:
-
                 msg.angular.z = gain * self._angle
 
             self._cmd_vel_pub.publish(msg)

@@ -2,7 +2,7 @@
 State machine startup
 
 Usage:
-  challenge_{challenge_name}.py ({robot}) [--initial=<init>] [--initial_pose=<init_pose>] [--debug] [--no_execute]
+  challenge_{challenge_name}.py ({robot}) [--initial=<init>] [--initial_pose=<init_pose>] [--debug] [--no-execute]
 
 Options:
   -h --help                     Show this screen.
@@ -12,14 +12,16 @@ Options:
   --no-execute                  Only construct state machine, do not execute it, i.e. only do checks.
 """
 
+# System
+import ast
+from docopt import docopt
+import sys
 
+# ROS
 import rospy
 import smach_ros
-import sys
-import traceback
-from docopt import docopt
-import os
-import ast
+
+# TU/e Robotics
 from robot_skills.util.robot_constructor import robot_constructor
 
 
@@ -45,7 +47,7 @@ def startup(statemachine_creator, initial_state=None, robot_name='', challenge_n
     initial_state = arguments["--initial"]
     initial_pose = arguments["--initial_pose"]
     enable_debug = arguments["--debug"]
-    no_execute = arguments["--no_execute"]
+    no_execute = arguments["--no-execute"]
 
     robot = robot_constructor(robot_name)
 

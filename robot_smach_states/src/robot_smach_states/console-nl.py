@@ -1,15 +1,17 @@
 #! /usr/bin/python
 
+# System
+import cmd
+import importlib
+import multiprocessing
 import sys
 
-import cmd
+# ROS
 import rospy
-import importlib
-import threading
-import multiprocessing
 
-from robot_smach_states.navigation import NavigateToObserve, NavigateToWaypoint
+# TU/e Robotics
 from robot_smach_states.manipulation import Grab, Place
+from robot_smach_states.navigation import NavigateToObserve, NavigateToWaypoint
 import robot_smach_states.util.designators as ds
 
 ROBOTS = {}
@@ -25,6 +27,7 @@ WORDS = ["grab", "grasp", "pick", "up", "goto", "go", "to", "move", "navigate",
 
 # ----------------------------------------------------------------------------------------------------
 
+
 class bcolors:
     RED    = '\033[91m'
     ORANGE = '\033[93m'
@@ -37,6 +40,7 @@ class bcolors:
         return "%s%s%s" % (color, msg, bcolors.ENDC)
 
 # ----------------------------------------------------------------------------------------------------
+
 
 class SmachAction:
 
@@ -145,7 +149,8 @@ def parse_object(p, robot):
     else:
         entities = robot.ed.get_entities(parse=False)
 
-    robot_pos = robot.base.get_location().frame.p
+    robot_location = robot.base.get_location()
+    robot_pos = robot_location.frame.p
 
     # Sort entities by distance
     entities = sorted(entities, key=lambda entity: entity.distance_to_2d(robot_pos))

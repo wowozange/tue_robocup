@@ -1,22 +1,13 @@
-#! /usr/bin/env python
-import roslib;
+# System
+from random import choice
+
+# ROS
 import rospy
 import smach
-import geometry_msgs.msg
-import time
-import ed
-import time
 
-from math import cos, sin
-from geometry_msgs.msg import *
-from robot_skills.util.kdl_conversions import kdlVectorStampedFromPointStampedMsg
-from cb_planner_msgs_srvs.srv import *
+# TU/e Robotics
 from cb_planner_msgs_srvs.msg import *
 
-import math
-import actionlib
-from random import choice
-import robot_skills.util.msg_constructors as msgs
 
 # ----------------------------------------------------------------------------------------------------
 
@@ -25,7 +16,7 @@ class StartAnalyzer(smach.State):
         smach.State.__init__(self,outcomes=['done'])
         self.robot = robot
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         self.robot.base.analyzer.start_measurement(self.robot.base.get_location().frame)
         return 'done'
 
@@ -37,7 +28,7 @@ class StopAnalyzer(smach.State):
         self.robot  = robot
         self.result = result
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         self.robot.base.analyzer.stop_measurement(self.robot.base.get_location().frame, self.result)
         return 'done'
 
@@ -48,7 +39,7 @@ class AbortAnalyzer(smach.State):
         smach.State.__init__(self,outcomes=['done'])
         self.robot  = robot
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         self.robot.base.analyzer.abort_measurement()
         return 'done'
 
@@ -62,7 +53,7 @@ class getPlan(smach.State):
         self.constraint_function = constraint_function
         self.speak = speak
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
 
         # Sleep for 0.1 s (breakOut sleep) to prevent synchronization errors between monitor state and nav state
         rospy.sleep(rospy.Duration(0.1))
@@ -105,7 +96,7 @@ class executePlan(smach.State):
         self.breakout_function = breakout_function
         self.reset_head = reset_head
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         '''
         Possible outcomes (when overloading)
         - 'breakout': when a condition has been met and navigation should stop because the goal has succeeded
@@ -180,7 +171,7 @@ class planBlocked(smach.State):
        smach.State.__init__(self,outcomes=['blocked', 'free'])
        self.robot = robot
 
-   def execute(self, userdata):
+   def execute(self, userdata=None):
 
         rospy.loginfo("Plan blocked");
 
@@ -192,7 +183,7 @@ class planBlocked(smach.State):
 
             # Look at the entity
             #ps = msgs.PointStamped(point=self.robot.base.local_planner.getObstaclePoint(), frame_id="/map")
-            #self.robot.head.look_at_point(kdlVectorStampedFromPointStampedMsg(ps))
+            #self.robot.head.look_at_point(kdl_vector_stamped_from_point_stamped_msg(ps))
 
 
             if not self.robot.base.local_planner.getStatus() == "blocked":
@@ -336,7 +327,7 @@ class constraintGenerator(smach.State):
                             input_keys=['position_constraint', 'orientation_constraint'],
                             output_keys=['position_constraint', 'orientation_constraint'])
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         return 'failed'
 
 class Navigate(smach.StateMachine):
@@ -346,7 +337,7 @@ class Navigate(smach.StateMachine):
         """@param robot the robot with which to perform this action
         @param entityId the entity or item to observe.
         @param baseConstraintGenerator a function func(robot, entityInfo) that returns a (PositionConstraint, OrientationConstraint)-tuple for cb_navigation.
-            entityInfo is a ed/EntityInfo message.
+            entityInfo is a ed_msgs/EntityInfo message.
         @param finishedChecker a function(robot) that checks whether the item if observed to your satisfaction. """
         smach.StateMachine.__init__(self, outcomes=['arrived','unreachable','preempted','goal_not_defined'])
 
@@ -372,7 +363,7 @@ class Turn(smach.State):
         self.radians = radians
         self.vth = vth
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         print "Turning %f radians with force drive at %f rad/s" % (self.radians, self.vth)
         self.robot.base.force_drive(0, 0, self.vth, self.radians / self.vth)
 

@@ -1,5 +1,8 @@
 #! /usr/bin/env python
+# ROS
 import rospy
+
+# TU/e Robotics
 from robot_smach_states.util.designators.core import Designator, VariableDesignator
 
 __author__ = 'loy'
@@ -79,6 +82,9 @@ class LockingDesignator(Designator):
 
     def __repr__(self):
         return "LockingDesignator({})".format(str(self.to_be_locked.name))
+
+    def _get_name(self):
+        return "lockable({})".format(self.to_be_locked.name)
 
 
 class AttrDesignator(Designator):

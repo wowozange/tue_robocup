@@ -1,15 +1,12 @@
 #! /usr/bin/env python
+
+# ROS
 import rospy
 import smach
-
-''' For siren demo challenge '''
-import thread
-from visualization_msgs.msg import Marker
-
 import std_msgs.msg
-from robot_skills.util import transformations as tf
-import robot_smach_states.util.designators as ds
 
+# TU/e Robotics
+import robot_smach_states.util.designators as ds
 from util.robocup_recorder import start_robocup_recorder
 
 
@@ -22,16 +19,8 @@ class Initialize(smach.State):
                                              'abort'])
         self.robot = robot
 
-    def execute(self, userdata):
-        self.robot.lights.set_color(0,0,1)  #be sure lights are blue
-
-        self.robot.head.reset()
-        self.robot.leftArm.reset()
-        self.robot.leftArm.send_gripper_goal('close',0.0)
-        self.robot.rightArm.reset()
-        self.robot.rightArm.send_gripper_goal('close',0.0)
-        self.robot.ed.reset()
-        self.robot.torso.reset()
+    def execute(self, userdata=None):
+        self.robot.reset()
 
         ## Check if TF link between /map and /base_link is set, if not error at initialize in stead of during first navigate execution
         rospy.loginfo("TF link between /map and /base_link is checked. If it takes longer than a second, probably an error. Do a restart!!!")
@@ -67,7 +56,7 @@ class SetInitialPose(smach.State):
 
         return e_loc.pose.frame.p.x(), e_loc.pose.frame.p.y(), rz
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         if isinstance(self.initial_position, str):
             x,y,phi = self.location_2d(self.initial_position)
         elif len(self.initial_position) == 3: #Tuple or list
@@ -101,9 +90,51 @@ class Trigger(smach.State):
 
         self.pub = rospy.Publisher(topic, std_msgs.msg.String, queue_size=10)
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         self.pub.publish(std_msgs.String(data=trigger))
         return 'triggered'
+
+# ----------------------------------------------------------------------------------------------------
+
+
+class WaitForTriggerTimeout(smach.State):
+    '''
+    Same as WaitForTrigger with timeout
+    '''
+
+    def __init__(self, robot, timeout, triggers, topic):
+        smach.State.__init__(self,
+                             outcomes=triggers+['preempted', 'timeout'])
+        self.timeout = timeout
+        self.robot = robot
+        self.triggers = triggers
+        self.trigger_received = None
+
+        # Get the ~private namespace parameters from command line or launch file.
+        topic     = topic
+
+        rospy.Subscriber(topic, std_msgs.msg.String, self.callback)
+
+        rospy.loginfo('topic: %s', topic)
+
+    def execute(self, userdata=None):
+        if self.trigger_received is None:
+            self.trigger_received = False
+
+        rospy.sleep(self.timeout)
+
+        if self.trigger_received:
+            return self.trigger_received
+        else:
+            return 'timeout'
+
+    def callback(self, data):
+        # Simply print out values in our custom message.
+        if data.data in self.triggers:
+            rospy.loginfo('trigger received: %s', data.data)
+            self.trigger_received = data.data
+        else:
+            rospy.logwarn('wrong trigger received: %s', data.data)
 
 # ----------------------------------------------------------------------------------------------------
 
@@ -135,7 +166,7 @@ class WaitForTrigger(smach.State):
         rospy.loginfo('topic: /%s', topic)
         rospy.loginfo('rate:  %d Hz', self.rate)
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         self.trigger_received = False
         #rospy.logwarn("Waiting for trigger (any of {0}) on topic /trigger".format(self.triggers))
         while not rospy.is_shutdown() and not self.trigger_received:
@@ -251,7 +282,7 @@ class WaitForDesignator(smach.State):
         self.attempts = attempts
         self.sleep_interval = sleep_interval
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         counter = 0
 
         while counter < self.attempts:

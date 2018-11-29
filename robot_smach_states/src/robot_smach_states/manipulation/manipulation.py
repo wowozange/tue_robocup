@@ -1,17 +1,18 @@
+# ROS
 import rospy
 import smach
+
+# TU/e Robotics
+from ed_msgs.msg import EntityInfo
+from robot_skills.arms import Arm
+from robot_skills.arms import GripperState
 from robot_skills.util import transformations
-
-from ed.msg import EntityInfo
-
 from robot_smach_states.human_interaction import Say
 from robot_smach_states.reset import ResetPart
 from robot_smach_states.utility import LockDesignator, UnlockDesignator
-from robot_skills.arms import ArmState
 from robot_smach_states.util.designators import LockingDesignator
-
 from robot_smach_states.util.designators import check_type
-from robot_skills.arms import Arm
+
 
 
 # TODO: poses to move to robot_description:
@@ -62,7 +63,16 @@ class HandoverFromHuman(smach.StateMachine):
     CloseGripperOnHandoverToRobot state and given the grabbed_entity_label
     as id.
     '''
-    def __init__(self, robot, arm_designator, grabbed_entity_label="", grabbed_entity_designator=None, timeout=10):
+    def __init__(self, robot, arm_designator, grabbed_entity_label="", grabbed_entity_designator=None, timeout=10, arm_configuration="handover_to_human"):
+        """
+        Hold up hand to accept an object and close hand once something is inserted
+        :param robot: Robot with which to execute this behavior
+        :param arm_designator: ArmDesignator resolving to arm accept item into
+        :param grabbed_entity_label: What ID to give a dummy item in case no grabbed_entity_designator is supplied
+        :param grabbed_entity_designator: EntityDesignator resolving to the accepted item. Can be a dummy
+        :param timeout: How long to hold hand over before closing without anything
+        :param arm_configuration: Which pose to put arm in when holding hand up for the item.
+        """
         smach.StateMachine.__init__(self, outcomes=['succeeded','failed','timeout'])
 
         check_type(arm_designator, Arm)
@@ -70,10 +80,10 @@ class HandoverFromHuman(smach.StateMachine):
             rospy.logerr("No grabbed entity label or grabbed entity designator given")
 
         with self:
-            smach.StateMachine.add("POSE", ArmToJointConfig(robot, arm_designator, "handover_to_human"),
+            smach.StateMachine.add("POSE", ArmToJointConfig(robot, arm_designator, arm_configuration),
                             transitions={'succeeded':'OPEN_BEFORE_INSERT','failed':'OPEN_BEFORE_INSERT'})
 
-            smach.StateMachine.add( 'OPEN_BEFORE_INSERT', SetGripper(robot, arm_designator, gripperstate='open'),
+            smach.StateMachine.add( 'OPEN_BEFORE_INSERT', SetGripper(robot, arm_designator, gripperstate=GripperState.OPEN),
                                 transitions={'succeeded'    :   'SAY1',
                                              'failed'       :   'SAY1'})
 
@@ -116,7 +126,7 @@ class HandoverToHuman(smach.StateMachine):
                         Say(robot, [ "Watch out, I will open my gripper in one second. Please take it from me."]),
                         transitions={   'spoken'    :'OPEN_GRIPPER_HANDOVER'})
 
-            smach.StateMachine.add('OPEN_GRIPPER_HANDOVER', SetGripper(robot, locked_arm, gripperstate=ArmState.OPEN, timeout=2.0),
+            smach.StateMachine.add('OPEN_GRIPPER_HANDOVER', SetGripper(robot, locked_arm, gripperstate=GripperState.OPEN, timeout=2.0),
                         transitions={'succeeded'    :   'SAY_CLOSE_NOW_GRIPPER',
                                      'failed'       :   'SAY_CLOSE_NOW_GRIPPER'})
 
@@ -128,7 +138,7 @@ class HandoverToHuman(smach.StateMachine):
             #             transitions={'succeeded'    :   'CLOSE_GRIPPER_HANDOVER',
             #                          'failed'       :   'SAY_I_WILL_KEEP_IT'})
 
-            smach.StateMachine.add('CLOSE_GRIPPER_HANDOVER', SetGripper(robot, locked_arm, gripperstate=ArmState.CLOSE, timeout=0.0),
+            smach.StateMachine.add('CLOSE_GRIPPER_HANDOVER', SetGripper(robot, locked_arm, gripperstate=GripperState.CLOSE, timeout=0.0),
                         transitions={'succeeded'    :   'RESET_ARM',
                                      'failed'       :   'RESET_ARM'})
 
@@ -158,7 +168,7 @@ class OpenGripperOnHandoverToHuman(smach.State):
         self.arm_designator = arm_designator
         self.timeout = timeout
 
-    def execute(self,userdata):
+    def execute(self,userdata=None):
         arm = self.arm_designator.resolve()
         if not arm:
             rospy.logerr("Could not resolve arm")
@@ -180,14 +190,14 @@ class CloseGripperOnHandoverToRobot(smach.State):
         self.item_label = grabbed_entity_label
         self.item_designator = grabbed_entity_designator
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         arm = self.arm_designator.resolve()
         if not arm:
             rospy.logerr("Could not resolve arm")
             return "failed"
 
         if self.item_designator:
-            arm.occupied_by = self.item_designator
+            arm.occupied_by = self.item_designator.resolve()
         else:
             if self.item_label != "":
                 handed_entity = EntityInfo(id=self.item_label)
@@ -203,7 +213,7 @@ class CloseGripperOnHandoverToRobot(smach.State):
 
 
 class SetGripper(smach.State):
-    def __init__(self, robot, arm_designator, gripperstate='open', drop_from_frame=None, grab_entity_designator=None, timeout=10):
+    def __init__(self, robot, arm_designator, gripperstate=GripperState.OPEN, drop_from_frame=None, grab_entity_designator=None, timeout=10):
         smach.State.__init__(self, outcomes=['succeeded','failed'])
 
         check_type(arm_designator, Arm)
@@ -213,7 +223,7 @@ class SetGripper(smach.State):
         self.grab_entity_designator = grab_entity_designator
         self.timeout = timeout
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         arm = self.arm_designator.resolve()
         if not arm:
             rospy.logerr("Could not resolve arm")
@@ -233,7 +243,7 @@ class SetGripper(smach.State):
             result = False
 
         # ToDo: make sure things can get attached to the gripper in this state. Use userdata?
-        if self.gripperstate == ArmState.OPEN:
+        if self.gripperstate == GripperState.OPEN:
             arm.occupied_by = None
 
         # ToDo: check for failed in other states
@@ -258,7 +268,7 @@ class ArmToUserPose(smach.State):
         self.frame_id  = frame_id
         self.delta = delta
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         if not self.delta:
             rospy.logwarn("Transforming to baselink, should become obsolete but this is not yet the case")
             #target_position_bl = transformations.tf_transform(target_position, "/map","/base_link", tf_listener=self.robot.tf_listener)
@@ -290,7 +300,7 @@ class ArmToQueryPoint(smach.State):
         self.pre_grasp            = pre_grasp
         self.first_joint_pos_only = first_joint_pos_only
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         # ToDo: check point_designator?
         goal = self.point_designator.resolve()
         if not goal:
@@ -322,8 +332,8 @@ class TorsoToUserPos(smach.State):
         self.torso_pos = torso_pos
         self.time_out = time_out
 
-    def execute(self, userdata):
-        if self.robot.spindle.send_goal(self.torso_pos,timeout=self.time_out):
+    def execute(self, userdata=None):
+        if self.robot.torso.send_goal(self.torso_pos,timeout=self.time_out):
             return 'succeeded'
         else:
             return 'failed'

@@ -1,8 +1,9 @@
-#! /usr/bin/env python
+# ROS
 import rospy
-from text_to_speech.srv import Speak, SpeakRequest
 
+# TU/e Robotics
 from robot_part import RobotPart
+from text_to_speech.srv import Speak, SpeakRequest
 
 
 class Speech(RobotPart):
@@ -14,22 +15,37 @@ class Speech(RobotPart):
         self._pre_hook = pre_hook
         self._post_hook = post_hook
 
-        self._default_language  = rospy.get_param(robot_name+"/text_to_speech/language", 'us')
-        self._default_voice     = rospy.get_param(robot_name+"/text_to_speech/voice", 'kyle')
-        self._default_character = rospy.get_param(robot_name+"/text_to_speech/character", 'default')
-        self._default_emotion   = rospy.get_param(robot_name+"/text_to_speech/emotion", 'neutral')
+        self._default_language  = self.load_param('text_to_speech/language', 'us')
+        self._default_voice     = self.load_param('text_to_speech/voice', 'kyle')
+        self._default_character = self.load_param('text_to_speech/character', 'default')
+        self._default_emotion   = self.load_param('text_to_speech/emotion', 'neutral')
 
     def close(self):
         pass
 
-    def speak(self, sentence, language=None, personality=None, voice=None, mood=None, block=True, replace={"_":" "}):
+    def speak(self, sentence, language=None, personality=None, voice=None, mood=None, block=True, replace={"_": " "}):
         """
         Send a sentence to the text to speech module.
-        You can set language, personality, voice and mood for the Phiips TTS.
-        When block=False, this method returns immediatly.
-        With the replace-dictionary, you can specify which characters to replace with what. By default, it replace underscores with spaces.
-        """
+        You can set language, personality, voice and mood for the Philips TTS.
+        When block=False, this method returns immediately.
+        With the replace-dictionary, you can specify which characters to replace with what. By default, it replace
+        underscores with spaces.
 
+        :param sentence: string with sentence to pronounce
+        :param language: string with language to speak. Philips TTS supports English (us) Dutch (nl)
+        :param personality: string indicating the personality. Supported are Default, Man, OldMan, OldWoman, Boy,
+         YoungGirl, Robot, Giant, Dwarf, Alien
+        :param voice: string indicating the voice to speak with. In English, "kyle" (default), "gregory" (French
+        accent) and "carlos" (Spanish accent) are supported. The Dutch voices are "david" and "marjolijn"
+        :param mood: string indicating the emotion. Supported are: Neutral, Friendly, Angry, Furious, Drill, Scared,
+        Emotional, Weepy, Excited, Surprised, Sad, Disgusted, Whisper.
+        :param block: bool to indicate whether this function should return immediately or if it should block until the
+        sentence has been spoken
+        :param replace: dictionary with replacement stuff # ToDo: replace
+        """
+        # ToDo: replace personality by character and mood by emotion. Furthermore, change the order of the arguments.
+        # ToDo: finally, get rid of the "replace" dict. This can be handled by the caller (in any case, you cannot
+        # pass a dict as a default argument!)
         if not language:
             language = self._default_language
         if not voice:
@@ -47,8 +63,9 @@ class Speech(RobotPart):
 
         result = False
         try:
-            if language == 'nl' and not (personality in ['david', 'marjolein']):
-                personality = 'david' #kyle doesn't work for NL
+            # ToDo: test this. This just seems utterly wrong
+            if language == 'nl' and not (personality in ['david', 'marjolijn']):
+                personality = 'marjolijn' #kyle doesn't work for NL
             rospy.loginfo("\x1b[1;32m'"+ sentence + "'\x1b[0m") #The funny stuff around sentence is for coloring the output text in the console
 
             req = SpeakRequest()
@@ -64,12 +81,11 @@ class Speech(RobotPart):
         except rospy.ServiceException, e:
             rospy.logerr("Service call failed: {0}".format(e))
             result = False
+        except Exception as e:
+            rospy.logerr("Something went seriously wrong: {}".format(e))
+            result = False
 
         if hasattr(self._post_hook, '__call__'):
             self._post_hook()
 
         return result
-
-if __name__ == "__main__":
-    rospy.init_node("amigo_speech_executioner", anonymous=True)
-    speech = Speech("amigo")

@@ -1,26 +1,25 @@
-#! /usr/bin/env python
-
 #
 #  Rein Appeldoorn
 #  October '14
 #
 
+# System
 import math
 
+# ROS
+from actionlib_msgs.msg import GoalStatus
 import geometry_msgs.msg
 import rospy
 import tf
 
+# TU/e Robotics
 from cb_planner_msgs_srvs.msg import LocalPlannerAction, OrientationConstraint, PositionConstraint, LocalPlannerGoal
 from cb_planner_msgs_srvs.srv import GetPlan, CheckPlan
-
 from robot_part import RobotPart
+from robot_skills.util.kdl_conversions import kdl_frame_stamped_from_pose_stamped_msg
 from .util import nav_analyzer
 from .util import transformations
-from robot_skills.util.kdl_conversions import kdlFrameStampedFromPoseStampedMsg
 
-
-###########################################################################################################################
 
 class LocalPlanner(RobotPart):
     def __init__(self, robot_name, tf_listener, analyzer):
@@ -47,11 +46,16 @@ class LocalPlanner(RobotPart):
         self.__setState("controlling", None, None, plan)
 
     def cancelCurrentPlan(self):
-        state = self._action_client.get_state()
-        # Only cancel goal when pending or active
-        if state ==0 or state == 1:
-            self._action_client.cancel_goal()
-            self.__setState("idle")
+        if self._goal_handle:
+            state = self._action_client.get_state()
+            # Only cancel goal when pending or active
+            if state == GoalStatus.PENDING or state == GoalStatus.ACTIVE:
+                self._action_client.cancel_goal()
+                self.__setState("idle")
+
+    def reset(self):
+        self._action_client.cancel_all_goals()
+        return True
 
     def getGoalHandle(self):
         return self._goal_handle
@@ -64,9 +68,6 @@ class LocalPlanner(RobotPart):
 
     def getObstaclePoint(self):
         return self._obstacle_point
-
-    def getPlan(self):
-        return plan
 
     def getCurrentOrientationConstraint(self):
         return self._orientation_constraint
@@ -86,7 +87,6 @@ class LocalPlanner(RobotPart):
         self._dtg = dtg
         self._plan = plan
 
-###########################################################################################################################
 
 class GlobalPlanner(RobotPart):
     def __init__(self, robot_name, tf_listener, analyzer):
@@ -143,19 +143,21 @@ class GlobalPlanner(RobotPart):
                 distance += math.sqrt( dx*dx + dy*dy)
         return distance
 
-###########################################################################################################################
 
 class Base(RobotPart):
     def __init__(self, robot_name, tf_listener):
         super(Base, self).__init__(robot_name=robot_name, tf_listener=tf_listener)
         self._cmd_vel = rospy.Publisher('/' + robot_name + '/base/references', geometry_msgs.msg.Twist, queue_size=10)
-        self._initial_pose_publisher = rospy.Publisher('/' + robot_name + '/initialpose', geometry_msgs.msg.PoseWithCovarianceStamped, queue_size=10)
+        self._initial_pose_publisher = rospy.Publisher('/' + robot_name + '/initialpose',
+                                                       geometry_msgs.msg.PoseWithCovarianceStamped, queue_size=10)
 
         self.analyzer = nav_analyzer.NavAnalyzer(robot_name)
 
         # The plannners
         self.global_planner = GlobalPlanner(robot_name, tf_listener, self.analyzer)
         self.local_planner = LocalPlanner(robot_name, tf_listener, self.analyzer)
+
+        self.subscribe_hardware_status('base')
 
     def wait_for_connections(self, timeout):
         """ Waits for the connections until they are connected
@@ -178,7 +180,14 @@ class Base(RobotPart):
         return plan
 
     def force_drive(self, vx, vy, vth, timeout):
+        """ Forces the robot to drive by sending a command velocity directly to the base controller. N.B.: all collision
+        avoidance is bypassed.
 
+        :param vx: forward velocity in m/s
+        :param vy: sideways velocity in m/s
+        :param vth: rotational velocity in rad/s
+        :param timeout: duration for this motion in seconds
+        """
         # Cancel the local planner goal
         self.local_planner.cancelCurrentPlan()
 
@@ -247,7 +256,6 @@ class Base(RobotPart):
     ########################################################
     ########################################################
 
-###########################################################################################################################
 
 def get_location(robot_name, tf_listener):
 
@@ -269,13 +277,14 @@ def get_location(robot_name, tf_listener):
         target_pose =  geometry_msgs.msg.PoseStamped(pose=geometry_msgs.msg.Pose(position=position, orientation=orientation))
         target_pose.header.frame_id = "/map"
         target_pose.header.stamp = time
-        return kdlFrameStampedFromPoseStampedMsg(target_pose)
+        return kdl_frame_stamped_from_pose_stamped_msg(target_pose)
 
     except (tf.LookupException, tf.ConnectivityException):
         rospy.logerr("tf request failed!!!")
         target_pose =  geometry_msgs.msg.PoseStamped(pose=geometry_msgs.msg.Pose(position=position, orientation=orientation))
         target_pose.header.frame_id = "/map"
-        return kdlFrameStampedFromPoseStampedMsg(target_pose)
+        return kdl_frame_stamped_from_pose_stamped_msg(target_pose)
+
 
 def computePathLength(path):
     distance = 0.0

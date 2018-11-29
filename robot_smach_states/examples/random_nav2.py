@@ -13,7 +13,7 @@ from robot_smach_states.util.startup import startup
 import std_msgs.msg
 
 from robot_smach_states.designators.designator import Designator
-from ed.srv import SimpleQuery, SimpleQueryRequest
+from ed_msgs.srv import SimpleQuery, SimpleQueryRequest
 
 class RandomNavDesignator(Designator):
 
@@ -146,7 +146,7 @@ class SelectAction(smach.State):
 
         rospy.loginfo("Use 'navc' to continue, 'navp' to pause and 'navs' to stop this node")
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         if self.outcome == 'pause':
             rospy.sleep(rospy.Duration(1/self.rate))
         return self.outcome

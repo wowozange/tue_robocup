@@ -1,23 +1,107 @@
-#! /usr/bin/env python
-
+# ROS
 import rospy
 import std_msgs.msg
 import PyKDL as kdl
-import tf_server
+
 import visualization_msgs.msg
-from actionlib import SimpleActionClient, GoalStatus
+from actionlib import GoalStatus
 from control_msgs.msg import FollowJointTrajectoryGoal, FollowJointTrajectoryAction
-from diagnostic_msgs.msg import DiagnosticArray
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
+
+# TU/e Robotics
 from tue_manipulation_msgs.msg import GraspPrecomputeGoal, GraspPrecomputeAction
 from tue_manipulation_msgs.msg import GripperCommandGoal, GripperCommandAction
 from tue_msgs.msg import GripperCommand
 
 from robot_part import RobotPart
 
+# If the grasp sensor distance is smaller than this value, the gripper is holding an object
+GRASP_SENSOR_THRESHOLD = rospy.get_param("skills/arm/grasp_sensor/threshold", 0.1)
+GRASP_SENSOR_TIMEOUT = rospy.get_param("skills/arm/grasp_sensor/timeout", 0.5)
+GRASP_SENSOR_LIMITS = tuple(rospy.get_param("skills/arm/grasp_sensor/limits", [0.02, 0.18]))
+# Temporary: this should be approximately 0.02 once the sensor is correctly setup
+GRASP_SENSOR_LIMITS = tuple(rospy.get_param("skills/arm/grasp_sensor/limits", [0.0025, 0.18]))
 
-class ArmState:
-    """Specifies a State either OPEN or CLOSE"""
+
+class GripperMeasurement(object):
+    """
+    Class holding measurements from the distance sensor on the grippers
+    """
+    EMPTY = -1
+    UNKNOWN = 0
+    HOLDING = 1
+
+    def __init__(self, distance):
+        """
+        Constructor
+
+        :param distance: float with measured distance
+        """
+        self._distance = distance
+        self._stamp = rospy.Time.now()
+
+    def _is_recent(self):
+        """
+        Checks if the sensor data is recent
+
+        :return: bool True if recent, i.e., measurement is less than GRASP_SENSOR_TIMEOUT old, False otherwise
+        """
+        return (rospy.Time.now() - self._stamp).to_sec() < GRASP_SENSOR_TIMEOUT
+
+    @property
+    def distance(self):
+        """
+        Returns the measured distance. If the measurement is too old or the distance is outside of of the provided
+        limits, NaN is returned
+
+        :return: float with distance if valid, NaN otherwise
+        """
+        # Check if data is recent
+        if not self._is_recent():
+            return float('nan')
+        elif not GRASP_SENSOR_LIMITS[0] < self._distance < GRASP_SENSOR_LIMITS[1]:
+            return float('nan')
+        else:
+            return self._distance
+
+    @property
+    def is_holding(self):
+        """
+        Returns if the gripper is holding anything based on the measurement, i.e., if the measurement is recent and
+        the value is between the lower limit and the sensor threshold
+
+        :return: bool if holding
+        """
+        return self._is_recent() and GRASP_SENSOR_LIMITS[0] < self._distance < GRASP_SENSOR_THRESHOLD
+
+    @property
+    def is_unknown(self):
+        """
+        Returns if the state is unknown, i.e., either the measurement is outdated or the distance is less than the
+        limit
+
+        :return: bool if unknown
+        """
+        return not self._is_recent() or self._distance < GRASP_SENSOR_LIMITS[0]
+
+    @property
+    def is_empty(self):
+        """
+        Returns if the gripper is empty, i.e., the measurement is recent and the value is greater than the threshold
+
+        :return: bool if holding
+        """
+        return self._is_recent() and self._distance > GRASP_SENSOR_THRESHOLD
+
+    def __repr__(self):
+        return "Distance: {}, is_holding: {}, is_unknown: {}, " \
+               "is_empty: {}".format(self.distance, self.is_holding, self.is_unknown, self.is_empty)
+
+
+class GripperState(object):
+    """
+    Specifies a State either OPEN or CLOSE
+    """
     OPEN = "open"
     CLOSE = "close"
 
@@ -36,6 +120,12 @@ class Arm(RobotPart):
     >>> left.send_gripper_goal_open(10)
     """
     def __init__(self, robot_name, tf_listener, side):
+        """
+        constructor
+        :param robot_name: robot_name
+        :param tf_listener: tf_server.TFClient()
+        :param side: left or right
+        """
         super(Arm, self).__init__(robot_name=robot_name, tf_listener=tf_listener)
         self.side = side
         if (self.side is "left") or (self.side is "right"):
@@ -55,13 +145,13 @@ class Arm(RobotPart):
 
         self.joint_names = self.load_param('skills/arm/joint_names')
         self.joint_names = [name + "_" + self.side for name in self.joint_names]
-        self.torso_joint_names = rospy.get_param('/'+self.robot_name+'/skills/torso/joint_names')
+        self.torso_joint_names = self.load_param('skills/torso/joint_names')
 
         self.default_configurations = self.load_param('skills/arm/default_configurations')
         self.default_trajectories   = self.load_param('skills/arm/default_trajectories')
 
         # listen to the hardware status to determine if the arm is available
-        rospy.Subscriber("/amigo/hardware_status", DiagnosticArray, self.cb_hardware_status)
+        self.subscribe_hardware_status(self.side + '_arm')
 
         # Init gripper actionlib
         self._ac_gripper = self.create_simple_action_client(
@@ -75,67 +165,39 @@ class Arm(RobotPart):
         self._ac_joint_traj = self.create_simple_action_client(
             "/" + robot_name + "/body/joint_trajectory_action", FollowJointTrajectoryAction)
 
+        # Init grasp sensor subscriber
+        self._grasp_sensor_state = GripperMeasurement(0.0)
+        rospy.Subscriber("/" + self.robot_name + "/" + self.side + "_arm/proximity_sensor",
+                         std_msgs.msg.Float32MultiArray, self._grasp_sensor_callback)
+
         # Init marker publisher
         self._marker_publisher = rospy.Publisher(
             "/" + robot_name + "/" + self.side + "_arm/grasp_target",
             visualization_msgs.msg.Marker, queue_size=10)
 
-    def load_param(self, param_name):
-        '''
-        Loads a parameter from the parameter server, namespaced by robot name
-        '''
-        return rospy.get_param('/' + self.robot_name + '/' + param_name)
-
     def cancel_goals(self):
-        """ Cancels the currently active grasp-precompute and joint-trajectory-action goals
+        """
+        Cancels the currently active grasp-precompute and joint-trajectory-action goals
+        :return: no return
         """
         self._ac_grasp_precompute.cancel_all_goals()
         self._ac_joint_traj.cancel_all_goals()
 
     def close(self):
+        """
+        Cancels all active goals for the arm and the gripper
+        :return: no return
+        """
         try:
             rospy.loginfo("{0} arm cancelling all goals on all arm-related ACs on close".format(self.side))
         except AttributeError:
-            print "Arm cancelling all goals on all arm-related ACs on close. Rospy is already deleted."
+            print "{0} arm cancelling all goals on all arm-related ACs on close. Rospy is already deleted.".format(self.side)
 
         self._ac_gripper.cancel_all_goals()
         self._ac_grasp_precompute.cancel_all_goals()
         self._ac_joint_traj.cancel_all_goals()
 
-    @property
-    def operational(self):
-        '''
-        The 'operational' property reflects the current hardware status of the arm.
-        '''
-        return self._operational
-
-    def cb_hardware_status(self, msg):
-        '''
-        hardware_status callback to determine if the arms are operational
-        '''
-        diags = [diag for diag in msg.status if diag.name == self.side + '_arm']
-
-        if len(diags) == 0:
-            rospy.logwarn('no diagnostic msg received for the %s arm' % self.side)
-        elif len(diags) != 1:
-            rospy.logwarn('multiple diagnostic msgs received for the %s arm' % self.side)
-        else:
-            level = diags[0].level
-
-            # 0. Stale
-            # 1. Idle
-            # 2. Operational
-            # 3. Homing
-            # 4. Error
-            if level != 2:
-                self._operational = False
-            else:
-                self._operational = True
-
-    def send_goal(self, frameStamped,
-                  timeout=30,
-                  pre_grasp=False,
-                  first_joint_pos_only=False,
+    def send_goal(self, frameStamped, timeout=30, pre_grasp=False, first_joint_pos_only=False,
                   allowed_touch_objects=[]):
         """
         Send a arm to a goal:
@@ -145,9 +207,13 @@ class Arm(RobotPart):
         for things such as grasping. You can also specify the frame_id which
         defaults to base_link
 
-        :param frameStamped A FrameStamped to move the arm's end effector to
+        :param frameStamped: A FrameStamped to move the arm's end effector to
+        :param timeout: timeout in seconds; In case of 0.0, goal is executed without feedback and waiting
+        :param pre_grasp: Bool to use pre_grasp or not
+        :param first_joint_pos_only: Bool to only execute first joint position of whole trajectory
+        :param allowed_touch_objects: List of object names in the worldmodel, which are allowed to be touched
+        :return: True of False
         """
-
         # save the arguments for debugging later
         myargs = locals()
 
@@ -156,7 +222,7 @@ class Arm(RobotPart):
             frameStamped.frame_id = "/"+self.robot_name+"/"+frameStamped.frame_id
             rospy.loginfo("Grasp precompute frame id = {0}".format(frameStamped.frame_id))
 
-        #Convert to baselink, which is needed because the offset is defined in the base_link frame
+        # Convert to baselink, which is needed because the offset is defined in the base_link frame
         frame_in_baselink = frameStamped.projectToFrame("/"+self.robot_name+"/base_link", self.tf_listener)
 
         # TODO: Get rid of this custom message type
@@ -216,12 +282,12 @@ class Arm(RobotPart):
                 execute_timeout=rospy.Duration(timeout)
             )
             if result == GoalStatus.SUCCEEDED:
-                
-                result_pose = self.tf_listener.lookupTransform("amigo/base_link", "amigo/grippoint_{}".format(self.side))
+
+                result_pose = self.tf_listener.lookupTransform(self.robot_name + "/base_link", self.robot_name + "/grippoint_{}".format(self.side), rospy.Time(0))
                 dx = grasp_precompute_goal.goal.x - result_pose[0][0]
                 dy = grasp_precompute_goal.goal.y - result_pose[0][1]
                 dz = grasp_precompute_goal.goal.z - result_pose[0][2]
-                
+
                 if abs(dx) > 0.005 or abs(dy) > 0.005 or abs(dz) > 0.005:
                     rospy.logwarn("Grasp-precompute error too large: [{}, {}, {}]".format(
                                   dx, dy, dz))
@@ -232,22 +298,28 @@ class Arm(RobotPart):
                 return False
 
     def send_joint_goal(self, configuration, timeout=5.0):
-        '''
+        """
         Send a named joint goal (pose) defined in the parameter default_configurations to the arm
-        '''
+        :param configuration: name of configuration, configuration should be loaded as parameter
+        :param timeout: timeout in seconds
+        :return: True or False, False in case of nonexistent configuration or failed execution
+        """
         if configuration in self.default_configurations:
             return self._send_joint_trajectory(
-                [self.default_configurations[configuration]]
-                , timeout=rospy.Duration(timeout))
+                [self.default_configurations[configuration]],
+                timeout=rospy.Duration(timeout))
         else:
             rospy.logwarn('Default configuration {0} does not exist'.format(configuration))
             return False
 
-    def send_joint_trajectory(self, configuration, timeout=5.0):
-        '''
+    def send_joint_trajectory(self, configuration, timeout=5):
+        """
         Send a named joint trajectory (sequence of poses) defined in the default_trajectories to
         the arm
-        '''
+        :param configuration: name of configuration, configuration should be loaded as parameter
+        :param timeout: timeout in seconds
+        :return: True or False, False in case of nonexistent configuration or failed execution
+        """
         if configuration in self.default_trajectories:
             return self._send_joint_trajectory(self.default_trajectories[configuration], timeout=rospy.Duration(timeout))
         else:
@@ -255,31 +327,42 @@ class Arm(RobotPart):
             return False
 
     def reset(self, timeout=0.0):
-        '''
+        """
         Put the arm into the 'reset' pose
-        '''
-        return self.send_joint_goal('reset', timeout=timeout)
+        :param timeout: timeout in seconds
+        :return: True or False
+        """
+        return self.send_joint_goal('reset', timeout=timeout) and self.send_gripper_goal('close', 0.0)
 
     @property
     def occupied_by(self):
-        '''
+        """
         The 'occupied_by' property will return the current entity that is in the gripper of this arm.
-        '''
+        :return: robot_skills.util.entity, ED entity
+        """
         return self._occupied_by
 
     @occupied_by.setter
     def occupied_by(self, value):
+        """
+        Set the entity which occupies the arm.
+        :param value: robot_skills.util.entity, ED entity
+        :return: no return
+        """
         self._occupied_by = value
 
     def send_gripper_goal(self, state, timeout=5.0):
-        '''
+        """
         Send a GripperCommand to the gripper of this arm and wait for finishing
-        '''
+        :param state: open or close
+        :param timeout: timeout in seconds; timeout of 0.0 is not allowed
+        :return: True of False
+        """
         goal = GripperCommandGoal()
 
-        if state == 'open':
+        if state == GripperState.OPEN:
             goal.command.direction = GripperCommand.OPEN
-        elif state == 'close':
+        elif state == GripperState.CLOSE:
             goal.command.direction = GripperCommand.CLOSE
         else:
             rospy.logerr('State shoulde be open or close, now it is {0}'.format(state))
@@ -287,7 +370,7 @@ class Arm(RobotPart):
 
         self._ac_gripper.send_goal(goal)
 
-        if state == 'open':
+        if state == GripperState.OPEN:
             if self.occupied_by is not None:
                 rospy.logerr("send_gripper_goal open is called but there is still an entity with id '%s' occupying the gripper, please update the world model and remove this entity" % self.occupied_by.id)
             self.occupied_by = None
@@ -300,15 +383,14 @@ class Arm(RobotPart):
         return goal_status == GoalStatus.SUCCEEDED
 
     def handover_to_human(self, timeout=10):
-        '''
+        """
         Handover an item from the gripper to a human.
 
-        Feels if user slightly pulls or pushes the (item in the) arm. On timeout, it will return False.
-        '''
-
-        succeeded = False
-
-        pub = rospy.Publisher('/'+self.robot_name+'/handoverdetector_'+self.side+'/toggle_robot2human', std_msgs.msg.Bool, queue_size=1, latch = True)
+        Feels if user slightly pulls or pushes (the item in) the arm. On timeout, it will return False.
+        :param timeout: timeout in seconds
+        :return: True or False
+        """
+        pub = rospy.Publisher('/'+self.robot_name+'/handoverdetector_'+self.side+'/toggle_robot2human', std_msgs.msg.Bool, queue_size=1, latch=True)
         pub.publish(std_msgs.msg.Bool(True))
 
         try:
@@ -319,17 +401,15 @@ class Arm(RobotPart):
             rospy.logerr(e)
             return False
 
-
     def handover_to_robot(self, timeout=10):
-        '''
+        """
         Handover an item from a human to the robot.
 
         Feels if user slightly pushes an item in the gripper. On timeout, it will return False.
-        '''
-
-        succeeded = False
-
-        pub = rospy.Publisher('/'+self.robot_name+'/handoverdetector_'+self.side+'/toggle_human2robot', std_msgs.msg.Bool, queue_size=1, latch = True)
+        :param timeout: timeout in seconds
+        :return: True or False
+        """
+        pub = rospy.Publisher('/'+self.robot_name+'/handoverdetector_'+self.side+'/toggle_human2robot', std_msgs.msg.Bool, queue_size=1, latch=True)
         pub.publish(std_msgs.msg.Bool(True))
 
         try:
@@ -340,23 +420,21 @@ class Arm(RobotPart):
             rospy.logerr(e)
             return False
 
-    def handshake(self, timeout=10):
-        return self._send_joint_trajectory([
-            [-0.2, 0.4, 0.7, 1.4, -1.75, 0.3, 0],
-            [-0.2, 0.4, 0.7, 1.6, -1.75, 0.3, 0],
-            [-0.2, 0.4, 0.7, 1.3, -1.75, 0.3, 0],
-            [-0.2, 0.4, 0.7, 1.4, -1.75, 0.3, 0]], timeout=rospy.Duration(timeout))
-
     def _send_joint_trajectory(self, joints_references, timeout=rospy.Duration(5), joint_names = None):
-        '''
+        """
         Low level method that sends a array of joint references to the arm.
 
         If timeout is defined, it will wait for timeout*len(joints_reference) seconds for the
         completion of the actionlib goal. It will return True as soon as possible when the goal
         succeeded. On timeout, it will return False.
-        '''
+        :param joints_references: list of joint configurations,
+        which should be a list of the length equal to the number of joints to be moved
+        :param timeout: timeout for each joint configuration in rospy.Duration(seconds); timeout of 0.0 is not allowed
+        :param joint_names: joint names, which need to me moved
+        :return: True or False
+        """
         if not joints_references:
-            return
+            return False
 
         if not joint_names:
             if len(joints_references[0]) == len(self.joint_names) + len(self.torso_joint_names):
@@ -394,11 +472,12 @@ class Arm(RobotPart):
                 rospy.logwarn("Cannot reach joint goal {0}".format(goal))
             return done
         else:
-            return None
+            return False
 
     def wait_for_motion_done(self, timeout=10.0, cancel=False):
-        """ Waits until all action clients are done
-        :param timeout: double with time (defaults to 10.0 seconds)
+        """
+        Waits until all action clients are done
+        :param timeout: timeout in seconds; in case 0.0, no sensible output is provided, just False
         :param cancel: bool specifying whether goals should be cancelled
         if timeout is exceeded
         :return bool indicates whether motion was done (True if reached,
@@ -407,7 +486,7 @@ class Arm(RobotPart):
         # rospy.loginfo('Waiting for ac_joint_traj')
         starttime = rospy.Time.now()
         if self._ac_joint_traj.gh:
-            if not self._ac_joint_traj.wait_for_result(rospy.Duration(10.0)):
+            if not self._ac_joint_traj.wait_for_result(rospy.Duration(timeout)):
                 if cancel:
                     rospy.loginfo("Arms: cancelling all goals (1)")
                     self.cancel_goals()
@@ -430,10 +509,44 @@ class Arm(RobotPart):
         # rospy.loginfo('Waiting for ac_gripper')
         if self._ac_gripper.gh:
             rospy.logdebug('Not waiting for gripper action')
+            # return self._ac_gripper.wait_for_result(rospy.Duration(timeout - passed_time))
             return True
-            return self._ac_gripper.wait_for_result(rospy.Duration(timeout-passed_time))
+
+    @property
+    def object_in_gripper_measurement(self):
+        """
+        Returns whether the gripper is empty, holding an object or if this is unknown
+
+        :return: latest GripperMeasurement
+        """
+        return self._grasp_sensor_state
+
+    @property
+    def grasp_sensor_distance(self):
+        """
+        Returns the sensor distance. If no recent measurement is available or the measurement is outside bounds
+        and hence unreliable, NaN is returned
+
+        :return: float with distance
+        """
+        return self._grasp_sensor_state.distance
+
+    def _grasp_sensor_callback(self, msg):
+        """
+        Callback function for grasp sensor messages
+
+        :param msg: std_msgs.msg.Float32MultiArray
+        """
+        self._grasp_sensor_state = GripperMeasurement(msg.data[0])
 
     def _publish_marker(self, goal, color, ns = ""):
+        """
+        Publish markers for visualisation
+        :param goal: tue_manipulation_msgs.msg.GraspPrecomputeGoal
+        :param color: list of rgb colors (0.0-1.0)
+        :param ns: namespace
+        :return: no return
+        """
         marker = visualization_msgs.msg.Marker()
         marker.header.frame_id = goal.goal.header.frame_id
         marker.header.stamp = rospy.Time.now()
@@ -454,10 +567,81 @@ class Arm(RobotPart):
 
         self._marker_publisher.publish(marker)
 
+    def __repr__(self):
+        return "Arm(side='{side}')".format(side=self.side)
 
-if __name__ == "__main__":
-    rospy.init_node('amigo_arms_executioner', anonymous=True)
-    tf_listener = tf_server.TFClient()
 
-    left = Arm('amigo', "left", tf_listener)
-    right = Arm('amigo', "right", tf_listener)
+class FakeArm(RobotPart):
+    def __init__(self, robot_name, tf_listener, side):
+        super(FakeArm, self).__init__(robot_name=robot_name, tf_listener=tf_listener)
+        self.side = side
+        if (self.side is "left") or (self.side is "right"):
+            pass
+        else:
+            raise Exception("Side should be either: left or right")
+
+        self._operational = False
+
+        # Get stuff from the parameter server
+        offset = self.load_param('skills/arm/offset/' + self.side)
+        self.offset = kdl.Frame(kdl.Rotation.RPY(offset["roll"], offset["pitch"], offset["yaw"]),
+                                kdl.Vector(offset["x"], offset["y"], offset["z"]))
+
+        self.marker_to_grippoint_offset = self.load_param('skills/arm/offset/marker_to_grippoint')
+
+        self.joint_names = self.load_param('skills/arm/joint_names')
+        self.joint_names = [name + "_" + self.side for name in self.joint_names]
+        self.torso_joint_names = self.load_param('skills/torso/joint_names')
+
+        self.default_configurations = self.load_param('skills/arm/default_configurations')
+        self.default_trajectories   = self.load_param('skills/arm/default_trajectories')
+
+    @property
+    def operational(self):
+        return False
+
+    def cancel_goals(self):
+        pass
+
+    def close(self):
+        pass
+
+    def send_goal(self, frameStamped, timeout=30, pre_grasp=False, first_joint_pos_only=False,
+                  allowed_touch_objects=[]):
+        return False
+
+    def send_joint_goal(self, configuration, timeout=5.0):
+        return False
+
+    def send_joint_trajectory(self, configuration, timeout=5):
+        return False
+
+    def _send_joint_trajectory(self, joints_references, timeout=rospy.Duration(5), joint_names = None):
+        rospy.logwarn("_send_joint_trajectory called on FakeArm.")
+        return False
+
+    def reset(self, timeout=0.0):
+        return False
+
+    @property
+    def occupied_by(self):
+        return None
+
+    def send_gripper_goal(self, state, timeout=5.0):
+        return False
+
+    def handover_to_human(self, timeout=10):
+        return False
+
+    def handover_to_robot(self, timeout=10):
+        return False
+
+    def wait_for_motion_done(self, timeout=10.0, cancel=False):
+        return False
+
+    @property
+    def object_in_gripper_measurement(self):
+        return GripperMeasurement(0.0)
+
+    def __repr__(self):
+        return "FakeArm(side='{side}')".format(side=self.side)

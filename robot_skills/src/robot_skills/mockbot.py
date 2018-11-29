@@ -1,29 +1,32 @@
 #! /usr/bin/env python
-import random
-from collections import defaultdict
 
-import geometry_msgs
+# System
+from collections import defaultdict
 import mock
+import random
+
+# ROS
+import geometry_msgs
+import PyKDL as kdl
 import rospy
 import std_msgs.msg
 import tf
+
+# TU/e Robotics
+import arms
 from dragonfly_speech_recognition.msg import Choice
 from dragonfly_speech_recognition.srv import GetSpeechResponse
-from ed.msg import EntityInfo
+from ed_msgs.msg import EntityInfo
 from ed_sensor_integration.srv import UpdateResponse
-
-import arms
 from robot_skills import robot
 from robot_skills.util.kdl_conversions import VectorStamped, FrameStamped
 from robot_skills.classification_result import ClassificationResult
-import robot_skills.util.msg_constructors as msgs
-import PyKDL as kdl
-
 from robot_skills.util.entity import from_entity_info
+
 
 def random_kdl_frame():
     return kdl.Frame(kdl.Rotation.RPY(random.random(), random.random(), random.random()),
-                                     kdl.Vector(random.random(), random.random(), random.random()))
+                     kdl.Vector(random.random(), random.random(), random.random()))
 
 
 class Arm(arms.Arm):
@@ -102,8 +105,6 @@ class Head(object):
         self.close = mock.MagicMock()
         self.set_pan_tilt = mock.MagicMock()
         self.send_goal = mock.MagicMock()
-        self.ults = mock.MagicMock()
-        self.ult = mock.MagicMock()
         self.cancel_goal = mock.MagicMock()
         self.reset = mock.MagicMock()
         self.look_at_hand = mock.MagicMock()
@@ -122,13 +123,19 @@ class Head(object):
         self.__doneCallback = mock.MagicMock()
 
 
+class Perception(object):
+    def __init__(self, *args, **kwargs):
+        self.reset = mock.MagicMock()
+        self.close = mock.MagicMock()
+
+
 class Lights(object):
     def __init__(self, *args, **kwargs):
         self.close = mock.MagicMock()
         self.set_color = mock.MagicMock()
+        self.set_color_colorRGBA = mock.MagicMock()
         self.on = mock.MagicMock()
         self.off = mock.MagicMock()
-        self.start_sinus = mock.MagicMock()
 
 
 class Speech(object):
@@ -194,8 +201,6 @@ class ED(object):
 
         self._person_names = []
 
-        self.learn_person = lambda name: True
-
     @property
     def _entities(self):
         return defaultdict(ED.generate_random_entity, self._dynamic_entities.items() + self._static_entities.items())
@@ -218,6 +223,7 @@ class ED(object):
         entities = [self._entities[_id] for _id in ids if _id in self._entities]
         return [ClassificationResult(e.id, e.type, random.uniform(0,1), None ) for e in entities]
 
+
 class Mockbot(robot.Robot):
     """
     Interface to all parts of Mockbot. When initializing Mockbot, you can choose a list of components
@@ -236,7 +242,6 @@ class Mockbot(robot.Robot):
         # Body parts
         self.base = Base()
         self.torso = Torso()
-        self.spindle = self.torso
         self.leftArm = Arm(self.robot_name, self.tf_listener, "left")
         self.rightArm = Arm(self.robot_name, self.tf_listener, "right")
         self.arms = {"left":self.leftArm, "right":self.rightArm}
@@ -271,6 +276,7 @@ class Mockbot(robot.Robot):
         if any((exception_type, exception_val, trace)):
             rospy.logerr("Robot exited with {0},{1},{2}".format(exception_type, exception_val, trace))
         self.close()
+
 
 if __name__ == "__main__":
     print "     _              __"

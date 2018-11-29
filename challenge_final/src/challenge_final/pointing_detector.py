@@ -1,14 +1,10 @@
-# ROS
 import PyKDL as kdl
 import rospy
 import smach
-import random
-
-from robot_skills.util import kdl_conversions
-from robot_smach_states.util.startup import startup
-from robot_smach_states.util.designators import Designator
 from ed_sensor_integration.srv import RayTraceResponse
-from geometry_msgs.msg import PoseStamped
+from robot_skills.util import kdl_conversions
+from robot_smach_states.util.designators import Designator
+from robot_smach_states.util.startup import startup
 
 
 def get_frame_from_vector(x_vector, origin):
@@ -31,14 +27,14 @@ def get_ray_trace_from_closest_person_dummy(robot,
                                             operator_pos=None,
                                             furniture_pos=None):
     try:
-        operator_vec = kdl_conversions.kdlVectorStampedFromPointStampedMsg(operator_pos)
-        furniture_vec = kdl_conversions.kdlVectorStampedFromPointStampedMsg(furniture_pos)
+        operator_vec = kdl_conversions.kdl_vector_stamped_from_point_stamped_msg(operator_pos)
+        furniture_vec = kdl_conversions.kdl_vector_stamped_from_point_stamped_msg(furniture_pos)
 
         diff = (furniture_vec.vector - operator_vec.vector) / (furniture_vec.vector - operator_vec.vector).Norm()
         ray_trace_frame = get_frame_from_vector(diff, operator_vec)
 
         # This is purely for visualization
-        robot.ed.ray_trace(kdl_conversions.kdlFrameStampedToPoseStampedMsg(ray_trace_frame))
+        robot.ed.ray_trace(kdl_conversions.kdl_frame_stamped_to_pose_stamped_msg(ray_trace_frame))
     except Exception as e:
         rospy.logerr(e)
         pass
@@ -51,7 +47,7 @@ def get_ray_trace_from_closest_person_dummy(robot,
 
 
 def get_ray_trace_from_closest_person(robot, arm_norm_threshold=0.1, upper_arm_norm_threshold=0.7):
-    persons = robot.head.detect_persons_3d()
+    persons = robot.head.detect_persons_3d()  # deprecated
     valid_persons = [person for person in persons if "right_shoulder" in person]
 
     if not valid_persons:
@@ -64,15 +60,16 @@ def get_ray_trace_from_closest_person(robot, arm_norm_threshold=0.1, upper_arm_n
     right_arm_valid = "right_wrist" in person and "right_elbow" in person and "right_shoulder" in person
 
     if left_arm_valid:
-        left_wrist = kdl_conversions.kdlVectorStampedFromPointStampedMsg(person["left_wrist"]).projectToFrame("/map",
-                                                                                                          robot.tf_listener)
-        left_elbow = kdl_conversions.kdlVectorStampedFromPointStampedMsg(person["left_elbow"]).projectToFrame("/map",
+        left_wrist = kdl_conversions.kdl_vector_stamped_from_point_stamped_msg(person["left_wrist"]).projectToFrame("/map",
                                                                                                               robot.tf_listener)
-        left_shoulder = kdl_conversions.kdlVectorStampedFromPointStampedMsg(person["left_shoulder"]).projectToFrame(
+        left_elbow = kdl_conversions.kdl_vector_stamped_from_point_stamped_msg(person["left_elbow"]).projectToFrame("/map",
+                                                                                                              robot.tf_listener)
+        left_shoulder = kdl_conversions.kdl_vector_stamped_from_point_stamped_msg(person["left_shoulder"]).projectToFrame(
             "/map",
             robot.tf_listener)
         left_lower_arm_vector = (left_wrist.vector - left_elbow.vector) / (left_wrist.vector - left_elbow.vector).Norm()
-        left_upper_arm_vector = (left_elbow.vector - left_shoulder.vector) / (left_elbow.vector - left_shoulder.vector).Norm()
+        left_upper_arm_vector = (left_elbow.vector - left_shoulder.vector) / (
+            left_elbow.vector - left_shoulder.vector).Norm()
         left_frame = get_frame_from_vector(left_lower_arm_vector, left_wrist)
         left_arm_norm = (left_lower_arm_vector * left_upper_arm_vector).Norm()
         left_upper_arm_norm = (left_upper_arm_vector * kdl.Vector(0, 0, 1)).Norm()
@@ -83,17 +80,20 @@ def get_ray_trace_from_closest_person(robot, arm_norm_threshold=0.1, upper_arm_n
         rospy.loginfo("Left arm not valid because it does not contain all required bodyparts")
 
     if right_arm_valid:
-        right_wrist = kdl_conversions.kdlVectorStampedFromPointStampedMsg(person["right_wrist"]).projectToFrame("/map",
+        right_wrist = kdl_conversions.kdl_vector_stamped_from_point_stamped_msg(person["right_wrist"]).projectToFrame("/map",
                                                                                                                 robot.tf_listener)
 
-        right_elbow = kdl_conversions.kdlVectorStampedFromPointStampedMsg(person["right_elbow"]).projectToFrame("/map",
-                                                                                                               robot.tf_listener)
+        right_elbow = kdl_conversions.kdl_vector_stamped_from_point_stamped_msg(person["right_elbow"]).projectToFrame("/map",
+                                                                                                                robot.tf_listener)
 
-        right_shoulder = kdl_conversions.kdlVectorStampedFromPointStampedMsg(person["right_shoulder"]).projectToFrame("/map",
-                                                                                                                     robot.tf_listener)
+        right_shoulder = kdl_conversions.kdl_vector_stamped_from_point_stamped_msg(person["right_shoulder"]).projectToFrame(
+            "/map",
+            robot.tf_listener)
 
-        right_lower_arm_vector = (right_wrist.vector - right_elbow.vector) / (right_wrist.vector - right_elbow.vector).Norm()
-        right_upper_arm_vector = (right_elbow.vector - right_shoulder.vector) / (right_elbow.vector - right_shoulder.vector).Norm()
+        right_lower_arm_vector = (right_wrist.vector - right_elbow.vector) / (
+            right_wrist.vector - right_elbow.vector).Norm()
+        right_upper_arm_vector = (right_elbow.vector - right_shoulder.vector) / (
+            right_elbow.vector - right_shoulder.vector).Norm()
 
         right_frame = get_frame_from_vector(right_lower_arm_vector, right_wrist)
         right_arm_norm = (right_lower_arm_vector * right_upper_arm_vector).Norm()
@@ -141,12 +141,13 @@ def get_ray_trace_from_closest_person(robot, arm_norm_threshold=0.1, upper_arm_n
         rospy.loginfo("No valid arms found ...")
         return None
 
-    return robot.ed.ray_trace(kdl_conversions.kdlFrameStampedToPoseStampedMsg(frame))
+    return robot.ed.ray_trace(kdl_conversions.kdl_frame_stamped_to_pose_stamped_msg(frame))
 
 
 class PointingDetector(smach.State):
     """ State to fill an EdEntityDesignator depending on the direction of an operator pointing at the entity
      """
+
     def __init__(self, robot, designator, default_entity_id, super_type="furniture"):
         """ Constructor
         :param robot: robot object
@@ -162,7 +163,7 @@ class PointingDetector(smach.State):
         self._super_type = super_type
         self._default_entity_id = default_entity_id
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
 
         # Point head in the right direction (look at the ground 100 m in front of the robot
         self._robot.head.look_at_ground_in_front_of_robot(distance=100.0)
@@ -197,7 +198,7 @@ class PointingDetector(smach.State):
             result = RayTraceResponse()
             result.entity_id = self._default_entity_id
             face_pos_map = face_pos.projectToFrame("map", self._robot.tf_listener)
-            face_pos_msg = kdl_conversions.kdlVectorStampedToPointStamped(face_pos_map)
+            face_pos_msg = kdl_conversions.kdl_vector_stamped_to_point_stamped(face_pos_map)
 
             e = self._robot.ed.get_entity(id=self._default_entity_id)
             from geometry_msgs.msg import PointStamped
@@ -251,7 +252,7 @@ class PointingDetector(smach.State):
         """
         # ToDo: catch the exceptiono in the detect_faces and return an empty list
         try:
-            raw_detections = self._robot.head.detect_faces()
+            raw_detections = self._robot.perception.detect_faces()
         except Exception as e:
             raw_detections = None
 
@@ -262,7 +263,7 @@ class PointingDetector(smach.State):
         detections = []
         for d in raw_detections:
             try:
-                vs = self._robot.head.project_roi(roi=d.roi)
+                vs = self._robot.perception.project_roi(roi=d.roi)
             except Exception as e:
                 rospy.logwarn("ROI Projection failed: {}".format(e))
                 continue
@@ -273,16 +274,18 @@ class PointingDetector(smach.State):
 
         return detections[0][1].vector.Norm() < threshold, detections[0][1]
 
-def setup_state_machine(robot):
-	sm = smach.StateMachine(outcomes=['Done','Aborted'])
-	pointing_des = Designator()
 
-	with sm:
-		smach.StateMachine.add('DETECT_POINTING',
-							   PointingDetector(robot, pointing_des, ""),
-							   transitions={'succeeded': 'Done',
-											'failed': 'Aborted'})
-	return sm
+def setup_state_machine(robot):
+    sm = smach.StateMachine(outcomes=['Done', 'Aborted'])
+    pointing_des = Designator()
+
+    with sm:
+        smach.StateMachine.add('DETECT_POINTING',
+                               PointingDetector(robot, pointing_des, ""),
+                               transitions={'succeeded': 'Done',
+                                            'failed': 'Aborted'})
+    return sm
+
 
 if __name__ == "__main__":
     rospy.init_node('state_machine')

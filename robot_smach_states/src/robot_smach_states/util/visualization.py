@@ -1,15 +1,19 @@
 #! /usr/bin/env python
 """Plot a smach state machine"""
 
-import os
-import smach
-from robot_smach_states.util.designators.core import Designator, VariableWriter, VariableDesignator
+# System
+from functools import wraps
 from graphviz import Digraph
+import os
+
+# ROS
+import smach
+
 
 def gv_safe(string):
     return str(string).replace("=", "_").replace(" ", "_").replace(".", "_").replace(">", "").replace("<", "")
 
-from functools import wraps
+
 def make_calls_unique(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
@@ -212,7 +216,7 @@ visualization_classes = [type(None), StateViz, StateMachineViz, TransitionViz, C
 
 def visualize(statemachine, statemachine_name, save_dot=False, fmt='png'):
     dot = Digraph(statemachine_name, comment=statemachine_name, format=fmt)
-    
+
     dot.graph_attr['label'] = statemachine_name
     dot.graph_attr['labelloc'] ="t"
 
@@ -235,7 +239,7 @@ def testcase1():
     sm = smach.StateMachine(outcomes=['Done', 'Aborted'])
     with sm:
         @smach.cb_interface(outcomes=["succeeded"])
-        def execute(userdata):
+        def execute(userdata=None):
             return "succeeded"
         smach.StateMachine.add('TEST1',
                                 smach.CBState(execute),
@@ -252,7 +256,7 @@ def testcase2():
     toplevel = smach.StateMachine(outcomes=['Done', 'Aborted'])
     with toplevel:
         @smach.cb_interface(outcomes=["succeeded", 'error'])
-        def execute(userdata):
+        def execute(userdata=None):
             return "succeeded"
         smach.StateMachine.add('TEST1',
                                 smach.CBState(execute),
@@ -282,7 +286,7 @@ def testcase3():
     testcase3 = smach.StateMachine(outcomes=['Done'])
     with testcase3:
         @smach.cb_interface(outcomes=["succeeded"])
-        def execute(userdata):
+        def execute(userdata=None):
             return "succeeded"
         smach.StateMachine.add('TEST1',
                                 smach.CBState(execute),
@@ -311,7 +315,7 @@ def testcase4():
     testcase4 = smach.StateMachine(outcomes=['Done'])
     with testcase4:
         @smach.cb_interface(outcomes=["succeeded", 'error'])
-        def execute(userdata):
+        def execute(userdata=None):
             return "succeeded"
         smach.StateMachine.add('TEST1',
                                 smach.CBState(execute),

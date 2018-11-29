@@ -1,15 +1,13 @@
-#! /usr/bin/env python
+# ROS
+from geometry_msgs.msg import *
+import rospy
 
-from robot_smach_states.navigation import NavigateTo
-
+# TU/e Robotics
 from cb_planner_msgs_srvs.srv import *
 from cb_planner_msgs_srvs.msg import *
-from geometry_msgs.msg import *
-
+import ed_msgs.msg
+from robot_smach_states.navigation import NavigateTo
 from robot_smach_states.util.designators import check_resolve_type
-import ed.msg
-
-import rospy
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -22,10 +20,10 @@ class NavigateToExplore(NavigateTo):
 
         self.robot    = robot
 
-        check_resolve_type(constraint_designator, ed.msg.EntityInfo) #Check that the constraint designator resolves to an Entity
+        check_resolve_type(constraint_designator, ed_msgs.msg.EntityInfo) #Check that the constraint designator resolves to an Entity
         self.constraint_designator = constraint_designator
 
-        check_resolve_type(breakout_designator, ed.msg.EntityInfo) #Check that the constraint designator resolves to an Entity
+        check_resolve_type(breakout_designator, ed_msgs.msg.EntityInfo) #Check that the constraint designator resolves to an Entity
         self.breakout_designator   = breakout_designator
         self.radius   = radius
         self.exclude_radius = exclude_radius
@@ -42,6 +40,8 @@ class NavigateToExplore(NavigateTo):
         if not e:
             rospy.logerr("No such entity")
             return None
+
+        rospy.logdebug("Navigating to explore entity '{}'".format(e.id))
 
         ch = e.convex_hull
 

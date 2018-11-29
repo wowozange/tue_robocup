@@ -15,7 +15,7 @@
   <run_depend>smach</run_depend>
   <run_depend>smach_ros</run_depend>
   <run_depend>geometry_msgs</run_depend>
-  <run_depend>ed</run_depend>
+  <run_depend>ed_msgs</run_depend>
   <run_depend>python-docopt</run_depend>
   <run_depend>python-mock</run_depend>
   <run_depend>ipython</run_depend>
@@ -27,5 +27,7 @@
   <run_depend>python-graphviz</run_depend>
   <run_depend>python-psutil</run_depend>
   <run_depend>python-numpy</run_depend>
+  <run_depend>orocos_kdl</run_depend>
+  <run_depend>python_orocos_kdl</run_depend>
 
 </package>

@@ -1,24 +1,25 @@
 #! /usr/bin/env python
-import roslib;
+
+# System
+import math
+import random
+import time
+
+# ROS
 import rospy
 import smach
-import random
-import ed_perception.msg
-import actionlib
-from robot_smach_states.state import State
-from hmi import TimeoutException
 
+# TU/e Robotics
+from hmi import TimeoutException
 import robot_smach_states.util.designators as ds
 from robot_smach_states.utility import WaitForDesignator
-from smach_ros import SimpleActionState
-import time
-import math
 
 # Say: Immediate say
 # Hear: Immediate hear
 # Ask: Interaction, say + hear
 
 ##########################################################################################################################################
+
 
 class Say(smach.State):
     """Say a sentence or pick a random one from a list.
@@ -88,7 +89,7 @@ class HearOptions(smach.State):
         self._timeout = timeout
         self.look_at_standing_person = look_at_standing_person
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         if self.look_at_standing_person:
             self._robot.head.look_at_standing_person()
 
@@ -264,7 +265,7 @@ class LearnPerson(smach.State):
 
         # Learn the face (try for a maximum of nr_tries times
         for i in range(self._nr_tries):
-            if self._robot.head.learn_person(name=person_name):
+            if self._robot.perception.learn_person(name=person_name):
                 self._robot.head.reset()
                 return "succeeded"
 

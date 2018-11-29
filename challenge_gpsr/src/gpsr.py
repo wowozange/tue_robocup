@@ -28,6 +28,7 @@ def task_result_to_report(task_result):
     #     output += " I am truly sorry, let's try this again! "
     return output
 
+
 def request_missing_field(grammar, grammar_target, semantics, missing_field):
     return semantics
 
@@ -39,22 +40,27 @@ def main():
     skip        = rospy.get_param('~skip', False)
     restart     = rospy.get_param('~restart', False)
     robot_name  = rospy.get_param('~robot_name')
-    entrance_no = rospy.get_param('~entrance_number', 0)
     no_of_tasks = rospy.get_param('~number_of_tasks', 0)
+    test        = rospy.get_param('~test_mode', False)
+    eegpsr      = rospy.get_param('~eegpsr', False)
+    time_limit  = rospy.get_param('~time_limit', 0)
+    if no_of_tasks == 0:
+        no_of_tasks = 999
+
+    if time_limit == 0:
+        time_limit = 999
 
     rospy.loginfo("[GPSR] Parameters:")
     rospy.loginfo("[GPSR] robot_name = {}".format(robot_name))
     if skip:
         rospy.loginfo("[GPSR] skip = {}".format(skip))
-    if entrance_no not in [1]:
-        rospy.logerr("[GPSR] entrance_number should be 1. You set it to {}".format(entrance_no))
-    else:
-        rospy.loginfo("[GPSR] entrance_number = {}".format(entrance_no))
-        entrance_no -= 1  # to transform to a 0-based index
     if no_of_tasks:
         rospy.loginfo("[GPSR] number_of_tasks = {}".format(no_of_tasks))
     if restart:
         rospy.loginfo("[GPSR] running a restart")
+    if test:
+        rospy.loginfo("[GPSR] running in test mode")
+    rospy.loginfo("[GPSR] time_limit = {}".format(time_limit))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -69,7 +75,10 @@ def main():
 
     action_client = ActionClient(robot.robot_name)
 
-    knowledge = load_knowledge('challenge_gpsr')
+    if eegpsr:
+        knowledge = load_knowledge('challenge_eegpsr')
+    else:
+        knowledge = load_knowledge('challenge_gpsr')
 
     no_of_tasks_performed = 0
 
@@ -83,7 +92,7 @@ def main():
     if not skip and not restart:
 
         # Wait for door, enter arena
-        s = StartChallengeRobust(robot, knowledge.initial_pose[entrance_no])
+        s = StartChallengeRobust(robot, knowledge.initial_pose)
         s.execute()
 
         # Move to the start location
@@ -101,11 +110,11 @@ def main():
 
     while True:
         # Navigate to the GPSR meeting point
-        if not skip and not finished:
+        if not skip:
             robot.speech.speak("Moving to the meeting point.", block=False)
             nwc = NavigateToWaypoint(robot=robot,
                                      waypoint_designator=EntityByIdDesignator(robot=robot,
-                                                                              id=knowledge.starting_pose[entrance_no]),
+                                                                              id=knowledge.starting_pose),
                                      radius=0.3)
             nwc.execute()
             # Report to the user and ask for a new task
@@ -113,15 +122,34 @@ def main():
         # Report to the user
         robot.head.look_at_standing_person()
         robot.speech.speak(report, block=True)
+        timeout_count = 0
+
+        if finished and not skip:
+            nwc = NavigateToWaypoint(robot=robot,
+                                     waypoint_designator=EntityByIdDesignator(robot=robot,
+                                                                              id=knowledge.exit_waypoint),
+                                     radius=0.3)
+            robot.speech.speak("I'm done now. Thank you very much, and goodbye!", block=True)
+            nwc.execute()
+            break
 
         while True:
-            while True:
+            if not test:
+                robot.speech.speak("Trigger me by saying my name, and wait for the ping.", block=True)
+
+            while True and not test:
                 try:
                     robot.hmi.query(description="", grammar="T -> %s" % robot_name, target="T")
-                except hmi.TimeoutException:
-                    continue
-                else:
+                    timeout_count = 0
                     break
+                except hmi.TimeoutException:
+                    if timeout_count >= 3:
+                        robot.hmi.restart_dragonfly()
+                        timeout_count = 0
+                        rospy.logwarn("[GPSR] Dragonfly restart")
+                    else:
+                        timeout_count += 1
+                        rospy.logwarn("[GPSR] Timeout_count: {}".format(timeout_count))
 
             robot.speech.speak(user_instruction, block=True)
             # Listen for the new task
@@ -130,20 +158,29 @@ def main():
                     sentence, semantics = robot.hmi.query(description="",
                                                           grammar=knowledge.grammar,
                                                           target=knowledge.grammar_target)
+                    timeout_count = 0
                     break
                 except hmi.TimeoutException:
                     robot.speech.speak(random.sample(knowledge.not_understood_sentences, 1)[0])
-                    continue
+                    if timeout_count >= 3:
+                        robot.hmi.restart_dragonfly()
+                        timeout_count = 0
+                        rospy.logwarn("[GPSR] Dragonfly restart")
+                    else:
+                        timeout_count += 1
+                        rospy.logwarn("[GPSR] Timeout_count: {}".format(timeout_count))
 
-            # check if we have heard this correctly
-            robot.speech.speak('I heard %s, is this correct?' % sentence)
-            try:
-                if 'no' == robot.hmi.query('', 'T -> yes | no', 'T').sentence:
-                    robot.speech.speak('Sorry')
-                    continue
-            except hmi.TimeoutException:
-                # robot did not hear the confirmation, so lets assume its correct
-                break
+
+            if not test:
+                # check if we have heard this correctly
+                robot.speech.speak('I heard %s, is this correct?' % sentence)
+                try:
+                    if 'no' == robot.hmi.query('', 'T -> yes | no', 'T').sentence:
+                        robot.speech.speak('Sorry')
+                        continue
+                except hmi.TimeoutException:
+                    # robot did not hear the confirmation, so lets assume its correct
+                    break
 
             break
 
@@ -174,7 +211,7 @@ def main():
         if task_result.succeeded:
             # Keep track of the number of performed tasks
             no_of_tasks_performed += 1
-            if no_of_tasks_performed == no_of_tasks:
+            if no_of_tasks_performed >= no_of_tasks:
                 finished = True
 
             # If we succeeded, we can say something optimistic after reporting to the operator
@@ -184,17 +221,8 @@ def main():
                 task_word = "tasks"
             report += " I performed {} {} so far, still going strong!".format(no_of_tasks_performed, task_word)
 
-        if rospy.get_time() - start_time > 60 * 15:
+        if rospy.get_time() - start_time > (60 * time_limit - 45) and no_of_tasks_performed >= 1:
             finished = True
-
-        if finished and not skip:
-            nwc = NavigateToWaypoint(robot=robot,
-                                     waypoint_designator=EntityByIdDesignator(robot=robot,
-                                                                              id=knowledge.exit_waypoint[entrance_no]),
-                                     radius = 0.3)
-            nwc.execute()
-            robot.speech.speak("Thank you very much, and goodbye!", block=True)
-            break
 
 
 # ------------------------------------------------------------------------------------------------------------------------

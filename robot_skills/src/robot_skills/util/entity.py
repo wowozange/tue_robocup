@@ -5,7 +5,8 @@ import yaml
 import rospy
 import PyKDL as kdl
 
-from robot_skills.util.kdl_conversions import poseMsgToKdlFrame, kdlFrameToPoseMsg, FrameStamped
+# TU/e Robotics
+from robot_skills.util.kdl_conversions import pose_msg_to_kdl_frame, FrameStamped
 from robot_skills.util.volume import volumes_from_entity_info_data
 from robot_skills.util.shape import shape_from_entity_info
 
@@ -119,22 +120,22 @@ class Entity(object):
     @pose.setter
     def pose(self, pose):
         """ Setter """
-        self._pose = poseMsgToKdlFrame(pose)
+        self._pose = pose_msg_to_kdl_frame(pose)
 
     def __repr__(self):
         return "Entity(id='{id}', type='{type}', frame={frame})".format(id=self.id, type=self.type, frame=self.pose)
 
 
 def from_entity_info(e):
-    """ Converts ed.msg.EntityInfo to an Entity
+    """ Converts ed_msgs.msg.EntityInfo to an Entity
 
-    :param e: ed.msg.EntityInfo
+    :param e: ed_msgs.msg.EntityInfo
     :return: Entity
     """
     identifier = e.id
     object_type = e.type
     frame_id = "/map"  # ED has all poses in map
-    pose = poseMsgToKdlFrame(e.pose)
+    pose = pose_msg_to_kdl_frame(e.pose)
     shape = shape_from_entity_info(e)
 
     last_update_time = e.last_update_time.to_sec()
@@ -146,7 +147,7 @@ def from_entity_info(e):
     super_types = e.types
 
     # TODO: this must be part of the definition of the entity in ED.
-    if e.has_shape and "amigo" not in e.id and "sergio" not in e.id and e.id is not "floor" and e.id is not "walls":
+    if e.has_shape and "amigo" not in e.id and "sergio" not in e.id and e.id != "floor" and 'wall' not in e.id:
         super_types += ["furniture"]
 
     if 'possible_human' in e.flags:

@@ -84,10 +84,10 @@ Q["action" : "answer", "solution": "sponge"] -> WHATWHICH is the smallest cleani
 Q["action" : "answer", "solution": "knife"] -> WHATWHICH is the biggest cutlery
 Q["action" : "answer", "solution": "fork"] -> WHATWHICH is the smallest cutlery
 
-Q["action" : "answer", "solution":  "the bedroom has two doors"] -> how many doors has the bedroom
-Q["action" : "answer", "solution": "the dining room has two doors"] -> how many doors has the dining room
-Q["action" : "answer", "solution": "in the living room there are no doors"] -> how many doors has the living room
-Q["action" : "answer", "solution": "in the kitchen there are no doors"] -> how many doors has the kitchen
+Q["action" : "answer", "solution": "the bedroom has two doors"] -> how many doors has the bedroom
+Q["action" : "answer", "solution": "the living room has two doors"] -> how many doors has the livingroom
+Q["action" : "answer", "solution": "the kitchen has one door"] -> how many doors has the kitchen
+Q["action" : "answer", "solution": "in the workshop there are no doors"] -> how many doors has the workshop
 '''
 
 ##############################################################################
@@ -108,13 +108,12 @@ Q["action" : "count", "entity" : P] -> how many PEOPLE[P] are in the crowd | tel
 
 grammar += '''
 
-NQ["action" : "c_count", "entity" : X] -> how many people in the crowd are POSITION[X]
-NQ["action" : "c_count", "entity" : W] -> how many people in the crowd are GESTURE[W]
-NQ["action" : "random_gender", "entity" : X] -> the POSITION[X] person was GENDER | tell me if the POSITION[X] person was a GENDER
-NQ["action" : "random_gender", "entity" : X] -> the POSITION[X] person was GENDER or GENDER | tell me if the POSITION[X] person was a GENDER or GENDER
-NQ["action" : "random_gender", "entity" : W] -> tell me if the GESTURE[W] person was a GENDER
-NQ["action" : "random_gender", "entity" : W] -> tell me if the GESTURE[W] person was a GENDER or GENDER
-NQ["action" : "c_count", "entity" : L] -> tell me how many people were wearing COLOR[L]
+NQ["action" : "count_pos", "entity" : X] -> how many people in the crowd are POSITION[X]
+NQ["action" : "count_ges", "entity" : W] -> how many people in the crowd are GESTURE[W]
+NQ["action" : "count_col", "entity" : L] -> tell me how many people were wearing COLOR[L]
+
+NQ["action" : "gender_pos", "entity" : X] -> the POSITION[X] person was GENDER | tell me if the POSITION[X] person was a GENDER | the POSITION[X] person was GENDER or GENDER | tell me if the POSITION[X] person was a GENDER or GENDER
+NQ["action" : "gender_ges", "entity" : W] -> tell me if the GESTURE[W] person was a GENDER | tell me if the GESTURE[W] person was a GENDER or GENDER
 '''
 
 ##############################################################################
@@ -126,8 +125,8 @@ NQ["action" : "c_count", "entity" : L] -> tell me how many people were wearing C
 grammar += '''
 SEARCH -> where is | in WHATWHICH room is
 
-Q["action" : "a_find", "entity" : Y] -> SEARCH the PLACEMENTS_AND_BEACONS[Y]
-Q["action" : "a_count", "entity" : Y, "location" : R] -> how many PLACEMENTS_AND_BEACONS[Y] are in the ROOMS[R]
+Q["action" : "find_placement", "entity" : Y] -> SEARCH the PLACEMENTS_AND_BEACONS[Y]
+Q["action" : "count_placement", "entity" : Y, "location" : R] -> how many PLACEMENTS_AND_BEACONS[Y] are in the ROOMS[R]
 '''
 
 ##############################################################################
@@ -137,22 +136,24 @@ Q["action" : "a_count", "entity" : Y, "location" : R] -> how many PLACEMENTS_AND
 ##############################################################################
 
 grammar += '''
-ADJR -> smaller | bigger
+SB -> smaller | bigger
+LH -> lighter | heavier
 
-Q["action" : "o_find", "entity" : O] -> where can i find DET OBJECT_NAMES[O]
-Q["action" : "c_find", "entity" : C] -> where can i find DET OBJECT_CATEGORIES[C]
+
+Q["action" : "find_object", "entity" : O] -> where can i find DET OBJECT_NAMES[O]
+Q["action" : "find_category", "entity" : C] -> where can i find DET OBJECT_CATEGORIES[C]
+
 Q["action" : "return_category", "entity" : O] -> to WHATWHICH category belong the OBJECT_NAMES[O]
+Q["action" : "return_color", "entity" : O] -> whats the color of the OBJECT_NAMES[O]
 
-NQ["action" : "o_count", "entity" : C] -> how many OBJECT_CATEGORIES[C] there are
+Q["action" : "compare_category", "entity_a" : O, "entity_b" : A] -> do DET OBJECT_NAMES[O] and DET OBJECT_NAMES[A] belong to the same category
+Q["action" : "compare_sizes", "entity_a" : O, "entity_b" : A] -> between DET OBJECT_NAMES[O] and DET OBJECT_NAMES[A] which one is SB
+Q["action" : "compare_weight", "entity_a" : O, "entity_b" : A] -> between DET OBJECT_NAMES[O] and DET OBJECT_NAMES[A] which one is LH
 
-NQ["action" : "find_color", "entity" : O] -> whats the colour of the OBJECT_NAMES[O]
-NQ["action" : "compare_category", "entity_a" : O, "entity_b" : A] -> do the OBJECT_NAMES[O] and OBJECT_NAMES[A] belong to the same category
+Q["action" : "count_object_cat", "entity" : C] -> how many OBJECT_CATEGORIES[C] there are
 
-NQ["action" : "o_count", "entity" : C, "location" : Y] -> how many OBJECT_CATEGORIES[C] are in the PLACEMENTS_AND_BEACONS[Y]
-NQ["action" : "o_count", "entity" : O, "location" : Y] -> how many OBJECT_NAMES[O] are in the PLACEMENTS_AND_BEACONS[Y]
-NQ["action" : "category_at_loc", "location" : Y] -> what objects are stored in the PLACEMENTS_AND_BEACONS[Y]
-
-NQ["action" : "compare", "entity_a" : O, "entity_b" : A] -> between the OBJECT_NAMES[O] and OBJECT_NAMES[A] WHATWHICH one is ADJR
+NQ["action" : "count_object_loc", "location" : Y] -> how many objects are in the PLACEMENTS_AND_BEACONS[Y] | what objects are stored in the PLACEMENTS_AND_BEACONS[Y]
+NQ["action" : "count_object_cat_loc", "entity" : C, "location" : Y] -> how many OBJECT_CATEGORIES[C] are in the PLACEMENTS_AND_BEACONS[Y]
 '''
 
 ##############################################################################
@@ -183,7 +184,7 @@ GENDER['girl'] -> girl
 
 POSITION['standing'] -> standing
 POSITION['sitting'] -> sitting
-POSITION['lying'] -> lying
+POSITION['lying'] -> laying
 
 GESTURE['waving'] -> waving
 GESTURE['rise_l_arm'] -> rising left arm

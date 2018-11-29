@@ -8,13 +8,11 @@ from PIL import Image
 from xhtml2pdf import pisa
 
 # ROS
-import PyKDL as kdl
 import rospy
 import smach
 
 # TU/e Robotics
 from robot_skills import world_model_ed
-from robot_skills.util.entity import Entity
 
 # Challenge storing groceries
 from challenge_storing_groceries import config
@@ -35,7 +33,7 @@ class WritePdf(smach.State):
         self._items = {}  # Dict mapping entity id to tuples: entity, probability, and filename of images
         self._designator = None
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
 
         # # Get all entities
         # entities = self._robot.ed.get_entities()
@@ -56,6 +54,12 @@ class WritePdf(smach.State):
         # Try to get stuff from the designator if available
         if self._designator is not None:
             results = self._designator.resolve()
+
+            # results is a list of ClassificationResults
+            # These are mapped to the entity ID, so that self._items[entity.id] maps to
+            #   the entity,
+            #   the probability for the type it has
+            #   an image
             for result in results:
                 if result.id not in self._items:
                     image = save_entity_image_to_file(self._robot.ed, result.id)
@@ -63,6 +67,7 @@ class WritePdf(smach.State):
                     self._items[entity.id] = (entity, result.probability, image)
 
         # Filter and sort based on probabilities
+        # Items with a to low probability are dropped from the list and thus not rendered to the PDF later
         items = [item for item in self._items.values() if item[1] >= config.CLASSIFICATION_THRESHOLD]
         items = [item for item in items if item[0].type not in config.SKIP_LIST]
         items = sorted(items, key=lambda item: item[1], reverse=True)
@@ -125,18 +130,18 @@ def save_entity_image_to_file(world_model_ed, entity_id):
         image = Image.open(stream)
     except Exception as e:
         rospy.logerr("Failed to load image from entity %s", entity_id)
-        rospy.logerr("Failed to load image ... Try installing the latest version of PILLOW: sudo pip install -I pillow")
+        rospy.logerr("Failed to load image ... Try installing the latest version of PILLOW: sudo apt-get install python-imaging")
         rospy.logerr(e)
         return None
 
     try:
         image_data = np.asarray(image)
         image_data_bw = image_data.max(axis=2)
-        non_empty_columns = np.where(image_data_bw.max(axis=0)>0)[0]
-        non_empty_rows = np.where(image_data_bw.max(axis=1)>0)[0]
-        cropBox = (min(non_empty_rows), max(non_empty_rows), min(non_empty_columns), max(non_empty_columns))
+        non_empty_columns = np.where(image_data_bw.max(axis=0) > 0)[0]
+        non_empty_rows = np.where(image_data_bw.max(axis=1) > 0)[0]
+        crop_box = (min(non_empty_rows), max(non_empty_rows), min(non_empty_columns), max(non_empty_columns))
 
-        image_data_new = image_data[cropBox[0]:cropBox[1]+1, cropBox[2]:cropBox[3]+1 , :]
+        image_data_new = image_data[crop_box[0]:crop_box[1]+1, crop_box[2]:crop_box[3]+1, :]
 
         cropped_image = Image.fromarray(image_data_new)
     except:

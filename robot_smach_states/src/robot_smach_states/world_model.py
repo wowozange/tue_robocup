@@ -1,15 +1,19 @@
 #! /usr/bin/env python
 
+# System
+import time
+
+# ROS
+import PyKDL as kdl
 import rospy
 import smach
-from robot_skills.util.kdl_conversions import VectorStamped
 
+# TU/e Robotics
+from robot_skills.classification_result import ClassificationResult
+from robot_skills.util.entity import Entity
+from robot_skills.util.kdl_conversions import VectorStamped
 from robot_smach_states.navigation import NavigateToObserve, NavigateToSymbolic
 import robot_smach_states.util.designators as ds
-from robot_skills.util.entity import Entity
-from robot_skills.classification_result import ClassificationResult
-
-import time
 
 
 def _color_info(string):
@@ -26,27 +30,26 @@ def look_at_segmentation_area(robot, entity, volume=None):
 
     # Determine the height of the head target
     # Start with a default
-    pos = entity.pose.frame.p
-    look_at_point_z = 0.7
 
     # Check if we have areas: use these
     if volume in entity.volumes:
         search_volume = entity.volumes[volume]
-        try:
-            look_at_point_z = search_volume.min_corner.z()
-        except Exception as e:
-            rospy.logerr("Cannot get z_min of volume {} of entity {}: {}".format(volume,
-                                                                                 entity.id, e.message))
+        x_obj = 0.5 * (search_volume.min_corner.x() + search_volume.max_corner.x())
+        y_obj = 0.5 * (search_volume.min_corner.y() + search_volume.max_corner.y())
+        z_obj = search_volume.min_corner.z()
+        lookat_pos_map = entity.pose.frame * kdl.Vector(x_obj, y_obj, z_obj)
+        x = lookat_pos_map.x()
+        y = lookat_pos_map.y()
+        z = lookat_pos_map.z()
     else:
         # Look at the top of the entity to inspect
         pos = entity.pose.frame.p
-        try:
-            look_at_point_z = pos.z + entity.shape.z_max
-        except Exception as e:
-            rospy.logerr("Cannot get z_max of entity {}: {}".format(entity.id, e.message))
+        x = pos.x()
+        y = pos.y()
+        z = pos.z() + entity.shape.z_max
 
     # Point the head at the right direction
-    robot.head.look_at_point(VectorStamped(pos.x(), pos.y(), look_at_point_z, "/map"), timeout=0)
+    robot.head.look_at_point(VectorStamped(x, y, z, "/map"), timeout=0)
 
     # Make sure the spindle is at the appropriate height if we are AMIGO
     if robot.robot_name == "amigo":
@@ -54,7 +57,7 @@ def look_at_segmentation_area(robot, entity, volume=None):
         # Correction for standard height: with a table heigt of 0.76 a spindle position
         # of 0.35 is desired, hence offset = 0.76-0.35 = 0.41
         # Minimum: 0.15 (to avoid crushing the arms), maximum 0.4
-        spindle_target = max(0.15, min(look_at_point_z - 0.41, robot.torso.upper_limit[0]))
+        spindle_target = max(0.15, min(z - 0.41, robot.torso.upper_limit[0]))
 
         robot.torso._send_goal([spindle_target], timeout=0)
         robot.torso.wait_for_motion_done()
@@ -74,7 +77,7 @@ class UpdateEntityPose(smach.State):
         self._robot = robot
         self._entity_designator = entity_designator
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         """ Looks at the entity and updates its pose using the update kinect service """
         # Start by looking at the entity
         entity_to_inspect = self._entity_designator.resolve()
@@ -94,16 +97,21 @@ class SegmentObjects(smach.State):
     """ Look at an entiy and segment objects within the area desired.
     """
     def __init__(self, robot, segmented_entity_ids_designator, entity_to_inspect_designator,
-                 segmentation_area="on_top_of"):
+                 segmentation_area="on_top_of",
+                 threshold=0.0):
         """ Constructor
 
         :param robot: robot object
         :param segmented_entity_ids_designator: designator that is used to store the segmented objects
         :param entity_to_inspect_designator: EdEntityDesignator indicating the (furniture) object to inspect
         :param segmentation_area: string defining where the objects are w.r.t. the entity, default = on_top_of
+        :param threshold: float for classification score. Entities whose classification score is lower are ignored
+            (i.e. are not added to the segmented_entity_ids_designator)
         """
         smach.State.__init__(self, outcomes=["done"])
         self.robot = robot
+
+        self.threshold = threshold
 
         ds.check_resolve_type(entity_to_inspect_designator, Entity)
         self.entity_to_inspect_designator = entity_to_inspect_designator
@@ -142,6 +150,17 @@ class SegmentObjects(smach.State):
                 for idx, obj in enumerate(object_classifications):
                     _color_info("   - Object {} is a '{}' (ID: {})".format(idx, obj.type, obj.id))
 
+                if self.threshold:
+                    over_threshold = [obj for obj in object_classifications if
+                                              obj.probability >= self.threshold]
+
+                    dropped = {obj.id: obj.probability for obj in object_classifications if
+                               obj.probability < self.threshold}
+                    rospy.loginfo("Dropping {l} entities due to low class. score (< {th}): {dropped}"
+                                  .format(th=self.threshold, dropped=dropped, l=len(dropped)))
+
+                    object_classifications = over_threshold
+
                 self.segmented_entity_ids_designator.write(object_classifications)
             else:
                 rospy.logerr("    Classification failed, this should not happen!")
@@ -160,15 +179,18 @@ class Inspect(smach.StateMachine):
     """ Class to navigate to a(n) (furniture) object and segment the objects on top of it.
 
     """
-    def __init__(self, robot, entityDes, objectIDsDes=None, searchArea="on_top_of", navigation_area=""):
+    def __init__(self, robot, entityDes, objectIDsDes=None, searchArea="on_top_of", navigation_area="",
+                 threshold=0.0):
         """ Constructor
 
         :param robot: robot object
         :param entityDes: EdEntityDesignator indicating the (furniture) object to inspect
         :param objectIDsDes: designator that is used to store the segmented objects
         :param searchArea: string defining where the objects are w.r.t. the entity, default = on_top_of
-        :param navigatoin_area: string identifying the inspection area. If provided, NavigateToSymbolic is used.
+        :param navigation_area: string identifying the inspection area. If provided, NavigateToSymbolic is used.
         If left empty, NavigateToObserve is used.
+        :param threshold: float for classification score. Entities whose classification score is lower are ignored
+            (i.e. are not added to the segmented_entity_ids_designator)
         """
         smach.StateMachine.__init__(self, outcomes=['done', 'failed'])
 
@@ -188,7 +210,8 @@ class Inspect(smach.StateMachine):
                                                     'goal_not_defined': 'failed',
                                                     'arrived': 'SEGMENT'})
 
-            smach.StateMachine.add('SEGMENT', SegmentObjects(robot, objectIDsDes.writeable, entityDes, searchArea),
+            smach.StateMachine.add('SEGMENT', SegmentObjects(robot, objectIDsDes.writeable, entityDes, searchArea,
+                                                             threshold=threshold),
                                    transitions={'done': 'done'})
 
 
