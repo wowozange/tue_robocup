@@ -6,7 +6,6 @@ import random
 # ROS
 import rospy
 import smach
-
 # TU/e Robotics
 from hmi import TimeoutException
 from robocup_knowledge import knowledge_loader
@@ -43,16 +42,12 @@ class TakeOrder(smach.State):
         A['no'] -> no
         """
         try:
-            speech_result = self._robot.hmi.query(description="Is this correct?",
-                                                  grammar=cgrammar, target="C")
+            speech_result = self._robot.hmi.query(description="Is this correct?", grammar="T[True] -> yes;"
+                                                                                          "T[False] -> no", target="T")
         except TimeoutException:
             return False
 
-        try:
-            ret = speech_result.semantics == "yes"
-        except:
-            return False
-        return ret
+        return speech_result.semantics
 
     def execute(self, userdata=None):
         self._robot.head.look_at_ground_in_front_of_robot(3)
@@ -87,7 +82,7 @@ class TakeOrder(smach.State):
                 if "beverage" in speech_result.semantics:
                     self._robot.speech.speak("I understood that you would like {}, "
                                             "is this correct?".format(speech_result.semantics['beverage']))
-                elif "food1" and "food2" in speech_result.semantics:
+                elif "food1" in speech_result.semantics and "food2" in speech_result.semantics:
                     self._robot.speech.speak("I understood that you would like {} and {}, "
                                             "is this correct?".format(speech_result.semantics['food1'],
                                                                     speech_result.semantics['food2']))
@@ -137,3 +132,20 @@ class ReciteOrders(smach.State):
         self._robot.head.cancel_goal()
 
         return "spoken"
+
+
+class ClearOrders(smach.State):
+    """ Clears the orders dict"""
+
+    def __init__(self, orders):
+        """ Constructor
+
+        :param orders: Python dict with orders
+        """
+        smach.State.__init__(self, outcomes=["succeeded"])
+
+        self.orders = orders
+
+    def execute(self, userdata=None):
+        self.orders.clear()
+        return 'succeeded'

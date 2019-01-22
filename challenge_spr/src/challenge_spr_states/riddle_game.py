@@ -1,10 +1,15 @@
 #!/usr/bin/python
 
+# System
+import random
+import traceback
+
+# ROS
 import rospy
 import smach
 import sys
-import random
 
+# TU/e Robotics
 import robot_smach_states as states
 from robot_smach_states.util.startup import startup
 from hmi import TimeoutException
@@ -19,7 +24,7 @@ common_knowledge = load_knowledge('common')
 #
 ##############################################################################
 
-DEFAULT_HEAR_TIME = 15.0
+DEFAULT_HEAR_TIME = 20.0
 
 ##############################################################################
 #
@@ -83,6 +88,7 @@ def answer(robot, res, crowd_data):
     Robot answers the heard question
 
     Arguments:
+        robot: robot api object
         res: question or None
         crowd_data: data about the crowd
 
@@ -100,37 +106,42 @@ def answer(robot, res, crowd_data):
     def answer_crowd_questions(action):
         return answer_count_people(action, crowd_data)
 
-    assignments = [('random_gender',    answer_random_gender),
-                   ('answer',           answer_predefined_questions),
-                   ('count',            answer_crowd_questions),
-                   ('find_placement',   answer_placement_location),
-                   ('count_placement',  answer_count_placement),
-                   ('find_object',      answer_find_objects),
-                   ('find_category',    answer_find_category),
-                   ('return_category',  answer_object_category),
-                   ('return_color',     answer_object_color),
-                   ('compare_category', answer_compare_objects_categories),
-                   ('count_object',     answer_count_objects_in_category),
-                   ]
+    assignments = {'random_gender':     answer_random_gender,
+                   'answer':            answer_predefined_questions,
+                   'count':             answer_crowd_questions,
+                   'find_placement':    answer_placement_location,
+                   'count_placement':   answer_count_placement,
+                   'find_object':       answer_find_objects,
+                   'find_category':     answer_find_category,
+                   'return_category':   answer_object_category,
+                   'return_color':      answer_object_color,
+                   'compare_sizes':     answer_compare_objects_sizes,
+                   'compare_weight':    answer_compare_objects_weight,
+                   'compare_category':  answer_compare_objects_categories,
+                   'count_object_cat':  answer_count_objects_in_category,
+                   }
 
+    ans = None
     for action in res.semantics['actions']:
         try:
             if 'action' not in action:
+                ans = "Sorry, I cannot %s. I don't know the answer." % str(action['action'])
                 continue
 
-            answer = "Sorry, I cannot %s. I don't know the answer." % str(action['action'])
-            for name, func in assignments:
-                if action['action'] == name:
-                    answer = func(action)
-                    break
+            func = assignments.get(action['action'])
+            if func is not None:
+                ans = func(action)              
 
         except Exception as e:
             rospy.logerr(e)
             robot.speech.speak("Whoops")
 
-    rospy.loginfo("Question was: '%s'?" % res.sentence)
-    robot.speech.speak("The answer is %s" % answer)
-    return True
+    if ans is None:
+        return False
+    else:
+        rospy.loginfo("Question was: '%s'?" % res.sentence)
+        robot.speech.speak("The answer is %s" % ans)
+        return True
 
 
 def answer_random_gender(action):
@@ -151,7 +162,14 @@ def answer_count_people(action, crowd_data):
                         ('men', 'men'),
                         ('women', 'women'),
                         ('boys', 'boys'),
-                        ('girls', 'girls')]
+                        ('girls', 'girls'),
+                        ('waiving', 'waiving'),
+                        ('raising_left', 'raising_left'),
+                        ('raising_right', 'raising_right'),
+                        ('pointing_left', 'pointing_left'),
+                        ('pointing_right', 'pointing_right'),
+                        ('laying', 'laying'),
+                        ('sitting', 'sitting')]
 
     for property_name, property_value in crowd_properties:
         if action['entity'] == property_name:
@@ -171,6 +189,8 @@ def answer_placement_location(action):
 
 def answer_count_placement(action):
     entity = action['entity']
+    location = action['location']
+
     locations = [loc for loc in common_knowledge.locations if loc['name'] == entity]
     if len(locations) == 1:
         room = locations[0]['room']
@@ -181,12 +201,19 @@ def answer_count_placement(action):
     else:
         return 'I should count but I dont know that object %s' % entity
 
+    locations = [loc for loc in locations if loc['room'] == location]
+    if not locations:
+        return 'There are no %s in the %s' % (entity, location)
+    elif len(locations) == 1:
+        return 'There is one %s in the %s' % (entity, location)
+    else:
+        return 'I should count but I dont know that object %s' % entity
+
 def answer_find_objects(action):
     entity = action['entity']
     objects = [obj for obj in common_knowledge.objects if obj['name'] == entity]
     if len(objects) == 1:
         cat = objects[0]['category']
-        print cat
         loc, area_name = common_knowledge.get_object_category_location(cat)
         return 'You can find the %s %s %s' % (entity, area_name, loc)
     else:
@@ -217,6 +244,42 @@ def answer_object_color(action):
         return 'The color of %s is %s' % (entity, col)
     else:
         return 'I should name the color but I dont know %s' % entity
+
+
+def answer_compare_objects_sizes(action):
+    entity_a = action['entity_a']
+    entity_b = action['entity_b']
+    objects_a = [obj for obj in common_knowledge.objects if obj['name'] == entity_a]
+    objects_b = [obj for obj in common_knowledge.objects if obj['name'] == entity_b]
+    if len(objects_a) == 1 and len(objects_b) == 1:
+        vol_a = objects_a[0]['volume']
+        vol_b = objects_b[0]['volume']
+        if vol_a > vol_b:
+            return 'The object %s is bigger than the object %s' % (entity_a, entity_b)
+        elif vol_a < vol_b:
+            return 'The object %s is smaller than the object %s' % (entity_a, entity_b)
+        else:
+        	return 'The objects %s and %s have exactly the same volume' % (entity_a, entity_b)
+    else:
+        return 'I dont know these objects'
+
+
+def answer_compare_objects_weight(action):
+    entity_a = action['entity_a']
+    entity_b = action['entity_b']
+    objects_a = [obj for obj in common_knowledge.objects if obj['name'] == entity_a]
+    objects_b = [obj for obj in common_knowledge.objects if obj['name'] == entity_b]
+    if len(objects_a) == 1 and len(objects_b) == 1:
+        w_a = objects_a[0]['weight']
+        w_b = objects_b[0]['weight']
+        if w_a > w_b:
+            return 'The object %s is heavier than the object %s' % (entity_a, entity_b)
+        elif w_a < w_b:
+            return 'The object %s is lighter than the object %s' % (entity_a, entity_b)
+        else:
+            return 'The objects %s and %s have exactly the same weight' % (entity_a, entity_b)
+    else:
+        return 'I dont know these objects'
 
 
 def answer_compare_objects_categories(action):
@@ -254,16 +317,16 @@ class TestRiddleGame(smach.StateMachine):
         smach.StateMachine.__init__(self, outcomes=['Done','Aborted'])
 
         self.userdata.crowd_data = {
-            "males": 1,
+            "males": 3,
             "men": 2,
-            "females": 3,
-            "women": 4,
-            "children": 5,
-            "boys": 6,
-            "girls": 7,
-            "adults": 8,
-            "elders": 9,
-            "crowd_size": 10
+            "females": 5,
+            "women": 3,
+            "children": 3,
+            "boys": 1,
+            "girls": 2,
+            "adults": 5,
+            "elders": 1,
+            "crowd_size": 8
         }
 
         with self:

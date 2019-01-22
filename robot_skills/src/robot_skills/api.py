@@ -1,8 +1,10 @@
-#!/usr/bin/env python
+# ROS
 import rospy
+from std_srvs.srv import Empty
+
+# TU/e Robotics
 from hmi_msgs.msg import QueryAction
 from hmi import Client, TimeoutException
-from std_srvs.srv import Empty
 from robot_part import RobotPart
 
 
@@ -55,6 +57,10 @@ class Api(RobotPart):
         msg = 'robot.ears.recognize IS REMOVED. Use `robot.hmi.query`'
         rospy.logerr(msg)
         raise Exception(msg)
+
+    def reset(self):
+        self.restart_dragonfly()
+        return True
 
     def restart_dragonfly(self):
         try:
