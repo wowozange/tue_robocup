@@ -38,12 +38,12 @@ class StoringGroceries(smach.StateMachine):
 
             smach.StateMachine.add("AWAIT_START",
                                    states.AskContinue(robot),
-                                   transitions={'continue': "MOVE_TABLE",
+                                   transitions={'continue': "RANGE_ITERATOR", # move_table state as it is unknown whether this will be relevant
                                                 'no_response': 'AWAIT_START'})
 
             cabinet = ds.EntityByIdDesignator(robot, id=CABINET)
 
-            open_door = OpenDoorMachine(robot, 'temp', 'in_front_of', 'shelf6') # cabinet_id is overwritten by 'move_table' below
+            open_door = OpenDoorMachine(robot, 'bookcase', 'in_front_of', 'shelf6') # cabinet_id is overwritten by 'move_table' below
 
             @smach.cb_interface(outcomes=["done"])
             def move_table(userdata=None, manipulate_machine=None):
