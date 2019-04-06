@@ -300,7 +300,7 @@ class EmptySpotDesignator(Designator):
 
         self.place_location_designator = place_location_designator
         self._edge_distance = 0.05  # Distance to table edge
-        self._spacing = 0.15
+        self._spacing = 0.4
         self._area = area
 
         self.marker_pub = rospy.Publisher('/empty_spots', MarkerArray, queue_size=1)

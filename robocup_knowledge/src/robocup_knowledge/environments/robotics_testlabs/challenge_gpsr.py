@@ -120,6 +120,18 @@ VP[{"action": "pick-up", "object": X, "source-location": Y}] -> V_PICKUP DET NAM
 
 ###############################################################################
 #
+# Open door
+#
+###############################################################################
+
+grammar += """
+V_OPEN -> open the door of | open
+
+VP[{"action": "open-door", "furniture_id": X, "furniture_navigate_area": "in_front_of", "furniture_inspect_area": "on_top_of"}] -> V_OPEN DET LOCATION[X]
+"""
+
+###############################################################################
+#
 # Place
 #
 ###############################################################################
