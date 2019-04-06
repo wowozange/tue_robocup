@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<launch>
+   <!-- Object Spawner -->
+   <node name="gazebo_object_spawner" pkg="ed_object_models" type="spawn_sdf_in_gazebo.py" args="$(find challenge_storing_groceries)/simulation/objects_sdf.yaml" />
+</launch>
