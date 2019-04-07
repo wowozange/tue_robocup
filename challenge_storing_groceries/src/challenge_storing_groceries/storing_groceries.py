@@ -38,10 +38,10 @@ class StoringGroceries(smach.StateMachine):
 
             smach.StateMachine.add("AWAIT_START",
                                    states.AskContinue(robot),
-                                   transitions={'continue': "RANGE_ITERATOR", # move_table state as it is unknown whether this will be relevant
+                                   transitions={'continue': "NAV_TO_START", # move_table state as it is unknown whether this will be relevant
                                                 'no_response': 'AWAIT_START'})
 
-            cabinet = ds.EntityByIdDesignator(robot, id=CABINET)
+            cabinet = ds.EntityByIdDesignator(robot, id=CABINET[0])
 
             open_door = OpenDoorMachine(robot, 'bookcase', 'in_front_of', 'shelf6') # cabinet_id is overwritten by 'move_table' below
 
@@ -90,24 +90,24 @@ class StoringGroceries(smach.StateMachine):
             smach.StateMachine.add('SAY_UNABLE_TO_OPEN_DOOR',
                                    states.Say(robot, "I am unable to open the shelf door, "
                                                      "can you please open it for me?"),
-                                   transitions={'spoken': 'RANGE_ITERATOR'})
+                                   transitions={'spoken': 'NAV_TO_START'})
 
-            # If you want to reinstate cabinet inspection uncomment section below and change transition above
-            # smach.StateMachine.add("NAV_TO_START",
-            #                        states.NavigateToSymbolic(robot,
-            #                                                  {cabinet: "in_front_of"},
-            #                                                  cabinet),
-            #                        transitions={'arrived': 'INSPECT_SHELVES',
-            #                                     'unreachable': 'INSPECT_SHELVES',
-            #                                     'goal_not_defined': 'INSPECT_SHELVES'})
-            #
-            # smach.StateMachine.add("INSPECT_SHELVES",
-            #                        InspectShelves(robot, cabinet),
-            #                        transitions={'succeeded': 'WRITE_PDF_SHELVES',
-            #                                     'nothing_found': 'WRITE_PDF_SHELVES',
-            #                                     'failed': 'WRITE_PDF_SHELVES'})
-            #
-            # smach.StateMachine.add("WRITE_PDF_SHELVES", pdf_writer, transitions={"done": "RANGE_ITERATOR"})
+            # TODO test whether the robot needs to reposition here
+            smach.StateMachine.add("NAV_TO_START",
+                                   states.NavigateToSymbolic(robot,
+                                                             {cabinet: "in_front_of"},
+                                                             cabinet),
+                                   transitions={'arrived': 'INSPECT_SHELVES',
+                                                'unreachable': 'INSPECT_SHELVES',
+                                                'goal_not_defined': 'INSPECT_SHELVES'})
+
+            smach.StateMachine.add("INSPECT_SHELVES",
+                                   InspectShelves(robot, cabinet),
+                                   transitions={'succeeded': 'WRITE_PDF_SHELVES',
+                                                'nothing_found': 'WRITE_PDF_SHELVES',
+                                                'failed': 'WRITE_PDF_SHELVES'})
+
+            smach.StateMachine.add("WRITE_PDF_SHELVES", pdf_writer, transitions={"done": "RANGE_ITERATOR"})
 
             # Begin setup iterator
             # The exhausted argument should be set to the prefered state machine outcome
