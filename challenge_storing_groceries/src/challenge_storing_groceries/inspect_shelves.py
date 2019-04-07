@@ -28,6 +28,10 @@ class InspectShelves(smach.State):
         rospy.sleep(rospy.Duration(0.25))
         cabinet_entity = self.robot.ed.get_entity(id=self.cabinet.id_, parse=True)
 
+        # Turn sideways to get hero's arm out of the way
+        self.robot.base.force_drive(0, 0, 1, 2)
+        self.robot.leftArm.send_joint_goal("evade_head")
+
         # Get the pose of all shelves
         shelves = []
         for k, v in cabinet_entity.volumes.iteritems():
