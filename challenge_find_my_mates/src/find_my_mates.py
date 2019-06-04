@@ -89,9 +89,9 @@ class FindPeople(State):
 
                 add_person = True
                 for person in self._people:
-                    new_person = (person.pose.frame.p - detected_person.pose.frame.p).Norm() > self._min_dist
-                    person_not_operator = (self._robot.ed.get_entities(id=STARTING_POINT).pose.frame.p - detected_person.pose.frame.p).Norm() > self._min_dist
-                    if not new_person or not person_not_operator:
+                    old_person = (person.pose.frame.p - detected_person.pose.frame.p).Norm() < self._min_dist
+                    person_is_operator = (self._robot.ed.get_entities(id=STARTING_POINT).pose.frame.p - detected_person.pose.frame.p).Norm() < self._min_dist
+                    if old_person or person_is_operator:
                         add_person = False
                         break
 
