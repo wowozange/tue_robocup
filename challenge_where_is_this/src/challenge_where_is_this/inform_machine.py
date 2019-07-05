@@ -1,3 +1,6 @@
+# System
+import enum
+
 # ROS
 import rospy
 import smach
@@ -22,6 +25,15 @@ if is_sim_mode():
 knowledge = load_knowledge("challenge_where_is_this")
 BACKUP_SCENARIOS = knowledge.backup_scenarios
 INFORMATION_POINT_ID = knowledge.information_point_id
+
+
+class WaitMode(enum.Enum):
+    SPEECH = "speech"
+    VISUAL = "visual"
+
+
+# Defines whether speech recognition or (visual) person recognition is used to determine when to proceed
+WAIT_MODE = WaitMode.VISUAL
 
 
 class EntityFromHmiResults(ds.Designator):
@@ -84,7 +96,7 @@ class GuideToRoomOrObject(smach.StateMachine):
                                    transitions={"arrived": "arrived",
                                                 "unreachable": "WAIT_ROOM_BACKUP",
                                                 "goal_not_defined": "goal_not_defined",
-                                                "lost_operator": "lost_operator",
+                                                "lost_operator": "ROOM_NAV_BACKUP",
                                                 "preempted": "preempted"})
 
             smach.StateMachine.add("WAIT_ROOM_BACKUP",
@@ -97,7 +109,7 @@ class GuideToRoomOrObject(smach.StateMachine):
                                    transitions={"arrived": "arrived",
                                                 "unreachable": "unreachable",
                                                 "goal_not_defined": "goal_not_defined",
-                                                "lost_operator": "lost_operator",
+                                                "lost_operator": "ROOM_NAV_BACKUP",
                                                 "preempted": "preempted"})
 
             smach.StateMachine.add("GUIDE_TO_FURNITURE",
@@ -105,7 +117,7 @@ class GuideToRoomOrObject(smach.StateMachine):
                                    transitions={"arrived": "arrived",
                                                 "unreachable": "WAIT_FURNITURE_BACKUP",  # Something is blocking
                                                 "goal_not_defined": "GUIDE_NEAR_FURNITURE",  # in_front_of not defined
-                                                "lost_operator": "lost_operator",
+                                                "lost_operator": "FURNITURE_NAV_BACKUP",
                                                 "preempted": "preempted"})
 
             smach.StateMachine.add("GUIDE_NEAR_FURNITURE",
@@ -113,7 +125,7 @@ class GuideToRoomOrObject(smach.StateMachine):
                                    transitions={"arrived": "arrived",
                                                 "unreachable": "WAIT_FURNITURE_BACKUP",
                                                 "goal_not_defined": "goal_not_defined",
-                                                "lost_operator": "lost_operator",
+                                                "lost_operator": "FURNITURE_NAV_BACKUP",
                                                 "preempted": "preempted"})
 
             smach.StateMachine.add("WAIT_FURNITURE_BACKUP",
@@ -126,8 +138,24 @@ class GuideToRoomOrObject(smach.StateMachine):
                                    transitions={"arrived": "arrived",
                                                 "unreachable": "unreachable",
                                                 "goal_not_defined": "goal_not_defined",
-                                                "lost_operator": "lost_operator",
+                                                "lost_operator": "FURNITURE_NAV_BACKUP",
                                                 "preempted": "preempted"})
+
+            smach.StateMachine.add("ROOM_NAV_BACKUP",
+                                   states.NavigateToSymbolic(robot, {entity_des: "in"}, entity_des),
+                                   transitions={"arrived": "SAY_ARRIVED",
+                                                "unreachable": "unreachable",
+                                                "goal_not_defined": "goal_not_defined",})
+
+            smach.StateMachine.add("FURNITURE_NAV_BACKUP",
+                                   states.NavigateToSymbolic(robot, {entity_des: "near"}, entity_des),
+                                   transitions={"arrived": "SAY_ARRIVED",
+                                                "unreachable": "unreachable",
+                                                "goal_not_defined": "goal_not_defined",})
+
+            smach.StateMachine.add("SAY_ARRIVED",
+                                   states.Say(robot, "We have arrived. I'll go back to the meeting point"),
+                                   transitions={"spoken": "arrived"})
 
 
 class InformMachine(smach.StateMachine):
@@ -154,16 +182,33 @@ class InformMachine(smach.StateMachine):
                                    smach.CBState(_reset_location_hmi_attempt),
                                    transitions={"reset": "ANNOUNCE_ITEM"})
 
-            smach.StateMachine.add("ANNOUNCE_ITEM",
-                                   states.Say(robot, "Hello, my name is {}. Please call me by my name. "
-                                                     "Talk loudly into my microphone and wait for the ping".
-                                              format(robot.robot_name), block=True),
-                                   transitions={"spoken": "WAIT_TO_BE_CALLED"})
+            if WAIT_MODE == WaitMode.SPEECH:
+                smach.StateMachine.add("ANNOUNCE_ITEM",
+                                       states.Say(robot, "Hello, my name is {}. Please call me by my name. "
+                                                         "Talk loudly into my microphone and wait for the ping".
+                                                  format(robot.robot_name), block=True),
+                                       transitions={"spoken": "WAIT_TO_BE_CALLED"})
 
-            smach.StateMachine.add("WAIT_TO_BE_CALLED",
-                                   states.HearOptions(robot, ["{}".format(robot.robot_name)], rospy.Duration(10)),
-                                   transitions={"{}".format(robot.robot_name): "INSTRUCT",
-                                                "no_result": "ANNOUNCE_ITEM"})
+                smach.StateMachine.add("WAIT_TO_BE_CALLED",
+                                       states.HearOptions(robot, ["{}".format(robot.robot_name)], rospy.Duration(10)),
+                                       transitions={"{}".format(robot.robot_name): "INSTRUCT",
+                                                    "no_result": "ANNOUNCE_ITEM"})
+
+            elif WAIT_MODE == WaitMode.VISUAL:
+                smach.StateMachine.add("ANNOUNCE_ITEM",
+                                       states.Say(robot, "Hello, my name is {}. Please step in front of me.".format(
+                                           robot.robot_name), block=True),
+                                       transitions={"spoken": "WAIT_TO_BE_CALLED"})
+
+                smach.StateMachine.add("WAIT_TO_BE_CALLED",
+                                       states.WaitForPersonInFront(robot, attempts=10, sleep_interval=1.0),
+                                       transitions={"success": "INSTRUCT",
+                                                    "failed": "SAY_NOT_DETECTED"})
+
+                smach.StateMachine.add("SAY_NOT_DETECTED",
+                                       states.Say(robot, "I did not see you but will try to continue anyway.".format(
+                                           robot.robot_name), block=True),
+                                       transitions={"spoken": "INSTRUCT"})
 
             smach.StateMachine.add("INSTRUCT",
                                    states.Say(robot,

@@ -15,12 +15,12 @@ from challenge_set_the_table.navigate_to_and_open_cupboard_drawer import Navigat
 from challenge_set_the_table.navigate_to_and_pick_item_from_cupboard_drawer import \
     NavigateToAndPickItemFromCupboardDrawer
 from challenge_set_the_table.navigate_to_and_place_item_on_table import NavigateToAndPlaceItemOnTable
-from robot_smach_states import Say, WaitTime, Initialize
+from robot_smach_states import Say, WaitTime, Initialize, StartChallengeRobust
 from robot_smach_states.util import startup
 from smach import StateMachine, cb_interface, CBState
 
 items_picked = []
-required_items = ["knife", "fork", "plate", "spoon", "cup"]
+required_items = ["plate", "napkin", "knife", "fork", "bowl"]
 iteration = 0
 max_iterations = 10
 
@@ -56,9 +56,14 @@ def setup_state_machine(robot):
 
     with state_machine:
         # Intro
-        StateMachine.add('START_CHALLENGE_ROBUST',
-                         Initialize(robot),
-                         transitions={'initialized': 'SAY_START', 'abort': 'done'})
+        # StateMachine.add('START_CHALLENGE_ROBUST',
+        #                  Initialize(robot),
+        #                  transitions={'initialized': 'SAY_START', 'abort': 'done'})
+
+        StateMachine.add('START_CHALLENGE_ROBUST', StartChallengeRobust(robot, "initial_pose"),  # ToDo: in knowledge
+                         transitions={'Done': 'SAY_START',
+                                      'Aborted': 'done',
+                                      'Failed': 'SAY_START'})
 
         StateMachine.add('SAY_START',
                          Say(robot,
@@ -73,7 +78,7 @@ def setup_state_machine(robot):
                                       'failed': 'SAY_OPEN_FAILED'})
 
         StateMachine.add('SAY_OPEN_FAILED',
-                         Say(robot, "I failed to open the cupboard drawer, can somebody open it for me?"),
+                         Say(robot, "I failed to open the cupboard drawer"),
                          transitions={'spoken': 'WAIT_OPEN'})
 
         StateMachine.add('WAIT_OPEN',

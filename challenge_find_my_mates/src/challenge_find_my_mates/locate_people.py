@@ -7,9 +7,12 @@
 import math
 import os
 import pickle
+import random
 import time
+from collections import deque
 from datetime import datetime
 
+import PyKDL
 import cv2
 import numpy as np
 import rospkg
@@ -19,6 +22,7 @@ from geometry_msgs.msg import PointStamped
 from robot_skills import Hero
 from robot_skills.util import kdl_conversions
 from smach import StateMachine, cb_interface, CBState
+from challenge_find_my_mates.cluster import cluster_people
 
 NUM_LOOKS = 2
 PERSON_DETECTIONS = []
@@ -61,8 +65,10 @@ class LocatePeople(StateMachine):
             global PERSON_DETECTIONS
             global NUM_LOOKS
 
-            # with open('/home/rein/find_my_mate.pickle') as f:
+            # with open('/home/rein/mates/floorplan-2019-07-05-11-06-52.pickle', 'r') as f:
             #     PERSON_DETECTIONS = pickle.load(f)
+            #     rospy.loginfo("Loaded %d persons", len(PERSON_DETECTIONS))
+            # 
             #
             # return "done"
 
@@ -73,9 +79,17 @@ class LocatePeople(StateMachine):
                                                         frame_id="/%s/base_link" % robot.robot_name)
                           for angle in look_angles]
 
+            sentences = deque([
+                "Hi there mates, where are you, please look at me!",
+                "I am looking for my mates! Dippi dee doo! Pew pew!",
+                "You are all looking great today! Keep looking at my camera. I like it when everybody is staring at me!"
+            ])
             while len(PERSON_DETECTIONS) < 4 and not rospy.is_shutdown():
                 for _ in range(NUM_LOOKS):
+                    sentences.rotate(1)
+                    robot.speech.speak(sentences[0], block=False)
                     for head_goal in head_goals:
+                        robot.speech.speak("please look at me", block=False)
                         robot.head.look_at_point(head_goal)
                         robot.head.wait_for_motion_done()
                         now = time.time()
@@ -107,7 +121,7 @@ class LocatePeople(StateMachine):
 
             return 'done'
 
-        @cb_interface(outcomes=['done'])
+        @cb_interface(outcomes=['done', 'failed'])
         def _data_association_persons_and_show_image_on_screen(_):
             global PERSON_DETECTIONS
 
@@ -122,24 +136,32 @@ class LocatePeople(StateMachine):
             min_corner = room_entity.pose.frame * room_volume.min_corner
             max_corner = room_entity.pose.frame * room_volume.max_corner
 
+            shrink_x = 0.5
+            shrink_y = 0.3
+            min_corner_shrinked = PyKDL.Vector(min_corner.x() + shrink_x, min_corner.y() + shrink_y, 0)
+            max_corner_shrinked = PyKDL.Vector(max_corner.x() - shrink_x, max_corner.y() - shrink_y, 0)
+
             rospy.loginfo('Found %d person detections', len(PERSON_DETECTIONS))
 
             def _get_clusters():
                 def _in_room(p):
-                    return min_corner.x() < p.x < max_corner.x() and min_corner.y() < p.y < max_corner.y()
+                    return min_corner_shrinked.x() < p.x < max_corner_shrinked.x() and min_corner_shrinked.y() < p.y < max_corner_shrinked.y()
 
                 in_room_detections = [d for d in PERSON_DETECTIONS if _in_room(d['map_ps'].point)]
 
                 rospy.loginfo("%d in room before clustering", len(in_room_detections))
 
-                # TODO cluster
-
-                clusters = in_room_detections
+                clusters = cluster_people(in_room_detections, np.array([6, 0]))
 
                 return clusters
 
             # filter in room and perform clustering until we have 4 options
-            person_detection_clusters = _get_clusters()
+            try:
+                person_detection_clusters = _get_clusters()
+            except ValueError as e:
+                rospy.logerr(e)
+                robot.speech.speak("Mates, where are you?", block=False)
+                return "failed"
 
             floorplan = cv2.imread(
                 os.path.join(rospkg.RosPack().get_path('challenge_find_my_mates'), 'img/floorplan.png'))
@@ -186,6 +208,12 @@ class LocatePeople(StateMachine):
                 except Exception as e:
                     rospy.logerr("Drawing image roi failed: {}".format(e))
 
+                label = "female" if person_detection['person_detection'].gender else "male"
+                label += ", " + str(person_detection['person_detection'].age)
+                cv2.putText(floorplan, label, (px_image, py_image + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2, cv2.LINE_AA)
+
+                # cv2.circle(floorplan, (px, py), 3, (0, 0, 255), 5)
+
             filename = os.path.expanduser('~/floorplan-{}.png'.format(datetime.now().strftime("%Y-%m-%d-%H-%M-%S")))
             cv2.imwrite(filename, floorplan)
             robot.hmi.show_image(filename, 120)
@@ -195,7 +223,7 @@ class LocatePeople(StateMachine):
         with self:
             self.add_auto('DETECT_PERSONS', CBState(detect_persons), ['done'])
             self.add('DATA_ASSOCIATION_AND_SHOW_IMAGE_ON_SCREEN',
-                     CBState(_data_association_persons_and_show_image_on_screen), transitions={'done': 'done'})
+                     CBState(_data_association_persons_and_show_image_on_screen), transitions={'done': 'done', 'failed': 'DETECT_PERSONS'})
 
 
 if __name__ == '__main__':

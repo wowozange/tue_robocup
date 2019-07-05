@@ -14,13 +14,16 @@ from robot_smach_states.util.designators import EdEntityDesignator
 from smach import StateMachine, cb_interface, CBState
 
 item_img_dict = {
-    "plate": 'images/plate.png',
-    "cup": 'images/cup.png',
-    "knife": 'images/knife.png',
-    "fork": 'images/fork.png',
-    "spoon": 'images/spoon.png'
+    "plate": 'images/plate.jpg',
+    "cup": 'images/cup.jpg',
+    "bowl": 'images/bowl.jpg',
+    "napkin": 'images/napkin.jpg',
+    "knife": 'images/knife.jpg',
+    "fork": 'images/fork.jpg',
+    "spoon": 'images/spoon.jpg'
 }
 
+plate_handover = [0.4, -0.2, 0.0, -1.37, -1.5]
 
 class PickItemFromCupboardDrawer(StateMachine):
     def __init__(self, robot, cupboard_id, required_items):
@@ -33,8 +36,8 @@ class PickItemFromCupboardDrawer(StateMachine):
             if wait_for_motion_done:
                 arm.wait_for_motion_done()
 
-        def send_gripper_goal(open_close_string):
-            arm.send_gripper_goal(open_close_string)
+        def send_gripper_goal(open_close_string, max_torque=0.1):
+            arm.send_gripper_goal(open_close_string, max_torque=max_torque)
             rospy.sleep(1.0)  # Does not work with motion_done apparently
 
         def show_image(package_name, path_to_image_in_package):
@@ -56,9 +59,13 @@ class PickItemFromCupboardDrawer(StateMachine):
                 robot.speech.speak("We picked 'm all apparently")
                 return 'failed'
 
-            arm.send_joint_goal("carrying_pose")
 
             item_name = leftover_items[0]
+
+            if item_name == 'plate':
+                send_joint_goal(plate_handover)
+            else:
+                arm.send_joint_goal("carrying_pose")
             picked_items.append(item_name)
 
             robot.speech.speak("Please put the {} in my gripper, like this".format(item_name), block=False)
@@ -67,7 +74,10 @@ class PickItemFromCupboardDrawer(StateMachine):
             send_gripper_goal("open")
             rospy.sleep(5.0)
             robot.speech.speak("Thanks for that!", block=False)
-            send_gripper_goal("close")
+            if item_name == 'plate':
+                send_gripper_goal("close", max_torque=0.7)
+            else:
+                send_gripper_goal("close")
 
             # Set output data
             user_data['item_picked'] = item_name
