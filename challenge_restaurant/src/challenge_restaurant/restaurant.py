@@ -152,8 +152,8 @@ class Restaurant(smach.StateMachine):
                                    transitions={'succeeded': 'SAY_CANNOT_GRASP'})
 
             smach.StateMachine.add('SAY_CANNOT_GRASP',
-                                   states.Say(robot, "I am unable to grasp my own order,"
-                                                     "could you please put it in my basket,"
+                                   states.Say(robot, "I am unable to grasp my own order, "
+                                                     "could you please put it in my basket, "
                                                      "Please say continue, when you are done"),
                                    transitions={'spoken': 'WAIT_FOR_OBJECTS'})
 
@@ -189,7 +189,7 @@ class Restaurant(smach.StateMachine):
                                                 'goal_not_defined': 'RETURN_TO_START'})
 
             smach.StateMachine.add('SAY_OBJECTS',
-                                   states.Say(robot, "Hi there handsome, here are is your order, "
+                                   states.Say(robot, "Hi there handsome, here is your order, "
                                                      "please take it from my basket, "
                                                      "Please say continue, when you took all items"),
                                    transitions={'spoken': 'WAIT_TO_TAKE_OBJECTS'})
