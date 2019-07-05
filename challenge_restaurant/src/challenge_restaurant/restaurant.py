@@ -11,6 +11,8 @@ from take_orders import TakeOrder, ReciteOrders, ClearOrders
 from wait_for_customer import AskTakeTheOrder
 from robot_skills.util.entity import Entity
 
+import rospy
+
 
 class Restaurant(smach.StateMachine):
     """ Main statemachine for the restaurant challenge """
@@ -32,17 +34,6 @@ class Restaurant(smach.StateMachine):
         customer_id = 'current_customer'
         customer_designator = states.util.designators.VariableDesignator(resolve_type=Entity, name=customer_id)
         orders = {}
-
-        receiving_order_timeout = CheckTimeOut(robot, 30)
-        receiving_order_timeout_des = ds.Designator(initial_value=receiving_order_timeout)
-        delivering_order_timeout = CheckTimeOut(robot, 30)
-        delivering_order_timeout_des = ds.Designator(initial_value=delivering_order_timeout)
-
-        @smach.cb_interface(outcomes=['done'])
-        def reset_timeout(ud, state):
-            # type: (object, CheckTimeOut) -> str
-            state.reset()
-            return 'done'
 
         with self:
             smach.StateMachine.add('INITIALIZE',
@@ -149,15 +140,18 @@ class Restaurant(smach.StateMachine):
 
             smach.StateMachine.add('SAY_CANNOT_GRASP',
                                    states.Say(robot, "I am unable to grasp my own order,"
-                                                     "could you please put it in my basket"),
+                                                     "could you please put it in my basket,"
+                                                     "Please say continue, when you are done"),
                                    transitions={'spoken': 'WAIT_FOR_OBJECTS'})
 
-            # smach.StateMachine.add('RECEIVING_ORDER_TIMEOUT')
+            smach.StateMachine.add('WAIT_FOR_OBJECTS', states.AskContinue(robot, timeout=rospy.Duration(20)),
+                                   transitions={'continue': 'BRING_OBJECTS',
+                                                'no_response': 'BRING_OBJECTS'})
 
-            smach.StateMachine.add('WAIT_FOR_OBJECTS',
-                                   states.WaitTime(robot=robot, waittime=5.0),
-                                   transitions={'waited': 'BRING_OBJECTS',
-                                                'preempted': 'STOP'})
+            # smach.StateMachine.add('WAIT_FOR_OBJECTS',
+            #                        states.WaitTime(robot=robot, waittime=5.0),
+            #                        transitions={'waited': 'BRING_OBJECTS',
+            #                                     'preempted': 'STOP'})
 
             smach.StateMachine.add('BRING_OBJECTS',
                                    states.NavigateToObserve(robot=robot, entity_designator=customer_designator,
@@ -183,15 +177,13 @@ class Restaurant(smach.StateMachine):
 
             smach.StateMachine.add('SAY_OBJECTS',
                                    states.Say(robot, "Hi there handsome, here are is your order, "
-                                                     "please take it from my basket."),
+                                                     "please take it from my basket, "
+                                                     "Please say continue, when you took all items"),
                                    transitions={'spoken': 'WAIT_TO_TAKE_OBJECTS'})
 
-            smach.StateMachine.add('RECEIVING_TIMEOUT', receiving_order_timeout,
-                                   transitions={'not_yet': 'ASK_CONTINUE',
-                                                'time_out': ''})
-
-            smach.StateMachine.add('RESET_RECEIVING_TIMEOUT', smach.CBState(reset_timeout,
-                                                                            cb_args=[receiving_order_timeout]))
+            smach.StateMachine.add('WAIT_TO_TAKE_OBJECTS', states.AskContinue(robot, timeout=rospy.Duration(20)),
+                                   transitions={'continue': 'RETURN_TO_START',
+                                                'no_response': 'RETURN_TO_START'})
 
             # smach.StateMachine.add('WAIT_TO_TAKE_OBJECTS',
             #                        states.WaitTime(robot=robot, waittime=5.0),
