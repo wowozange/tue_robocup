@@ -2,9 +2,11 @@
 import math
 
 import robot_smach_states as states
+import robot_smach_states.util.designators as ds
 import smach
 
 from store_waypoint import StoreWaypoint
+from timeout import CheckTimeOut
 from take_orders import TakeOrder, ReciteOrders, ClearOrders
 from wait_for_customer import AskTakeTheOrder
 from robot_skills.util.entity import Entity
@@ -30,6 +32,17 @@ class Restaurant(smach.StateMachine):
         customer_id = 'current_customer'
         customer_designator = states.util.designators.VariableDesignator(resolve_type=Entity, name=customer_id)
         orders = {}
+
+        receiving_order_timeout = CheckTimeOut(robot, 30)
+        receiving_order_timeout_des = ds.Designator(initial_value=receiving_order_timeout)
+        delivering_order_timeout = CheckTimeOut(robot, 30)
+        delivering_order_timeout_des = ds.Designator(initial_value=delivering_order_timeout)
+
+        @smach.cb_interface(outcomes=['done'])
+        def reset_timeout(ud, state):
+            # type: (object, CheckTimeOut) -> str
+            state.reset()
+            return 'done'
 
         with self:
             smach.StateMachine.add('INITIALIZE',
@@ -139,6 +152,8 @@ class Restaurant(smach.StateMachine):
                                                      "could you please put it in my basket"),
                                    transitions={'spoken': 'WAIT_FOR_OBJECTS'})
 
+            # smach.StateMachine.add('RECEIVING_ORDER_TIMEOUT')
+
             smach.StateMachine.add('WAIT_FOR_OBJECTS',
                                    states.WaitTime(robot=robot, waittime=5.0),
                                    transitions={'waited': 'BRING_OBJECTS',
@@ -167,14 +182,21 @@ class Restaurant(smach.StateMachine):
                                                 'goal_not_defined': 'RETURN_TO_START'})
 
             smach.StateMachine.add('SAY_OBJECTS',
-                                   states.Say(robot, "Hi there handsome, here are your objects, "
-                                                     "please take them from my basket"),
+                                   states.Say(robot, "Hi there handsome, here are is your order, "
+                                                     "please take it from my basket."),
                                    transitions={'spoken': 'WAIT_TO_TAKE_OBJECTS'})
 
-            smach.StateMachine.add('WAIT_TO_TAKE_OBJECTS',
-                                   states.WaitTime(robot=robot, waittime=5.0),
-                                   transitions={'waited': 'RETURN_TO_START',
-                                                'preempted': 'STOP'})
+            smach.StateMachine.add('RECEIVING_TIMEOUT', receiving_order_timeout,
+                                   transitions={'not_yet': 'ASK_CONTINUE',
+                                                'time_out': ''})
+
+            smach.StateMachine.add('RESET_RECEIVING_TIMEOUT', smach.CBState(reset_timeout,
+                                                                            cb_args=[receiving_order_timeout]))
+
+            # smach.StateMachine.add('WAIT_TO_TAKE_OBJECTS',
+            #                        states.WaitTime(robot=robot, waittime=5.0),
+            #                        transitions={'waited': 'RETURN_TO_START',
+            #                                     'preempted': 'STOP'})
 
             smach.StateMachine.add('RETURN_TO_START',
                                    states.NavigateToPose(robot=robot, x=start_x, y=start_y, rz=start_rz, radius=0.3),
