@@ -1,6 +1,6 @@
 #!/usr/bin/python
 import math
-
+import numpy as np
 import robot_smach_states as states
 import robot_smach_states.util.designators as ds
 import smach
@@ -33,7 +33,7 @@ class Restaurant(smach.StateMachine):
                                                                                        id=kitchen_id)
         customer_id = 'current_customer'
         customer_designator = states.util.designators.VariableDesignator(resolve_type=Entity, name=customer_id)
-        orders = {}
+        orders = []
 
         with self:
             smach.StateMachine.add('INITIALIZE',
@@ -56,7 +56,12 @@ class Restaurant(smach.StateMachine):
             # Implement new find state to detect nearest waving person
             smach.StateMachine.add('WAIT_FOR_CUSTOMER',
                                    states.FindFirstPerson(robot, customer_designator.writeable,
-                                                          properties={'tags': ['LWave', 'RWave']}, nearest=True),
+                                                          properties={'tags': ['LWave', 'RWave']},
+                                                          strict=False, nearest=True,
+                                                          speak=True,
+                                                          look_range=(-np.pi/4, np.pi/4),
+                                                          look_steps=4,
+                                                          search_timeout=600),  # 10 minutes
                                    transitions={'found': 'SAY_I_HAVE_SEEN',
                                                 'failed': 'WAIT_FOR_CUSTOMER'})
 
@@ -83,7 +88,7 @@ class Restaurant(smach.StateMachine):
 
             smach.StateMachine.add('NAVIGATE_TO_CUSTOMER',
                                    states.NavigateToObserve(robot=robot, entity_designator=customer_designator,
-                                                            radius=1.1),
+                                                            radius=0.8),
                                    transitions={'arrived': 'TAKE_ORDER',
                                                 'unreachable': 'SAY_NAVIGATE_TO_CUSTOMER_FALLBACK',
                                                 'goal_not_defined': 'WAIT_FOR_CUSTOMER'})
@@ -116,7 +121,7 @@ class Restaurant(smach.StateMachine):
                                                 'goal_not_defined': 'SAY_NAVIGATE_TO_KITCHEN_FALLBACK'})
 
             smach.StateMachine.add('SAY_NAVIGATE_TO_KITCHEN_FALLBACK',
-                                   states.Say(robot, "Help, how do I get there?"),
+                                   states.Say(robot, "Help, how do I get there?", block=False),
                                    transitions={'spoken': 'TURN_AROUND_KITCHEN_FALLBACK'})
 
             smach.StateMachine.add('TURN_AROUND_KITCHEN_FALLBACK',
@@ -127,8 +132,8 @@ class Restaurant(smach.StateMachine):
                                    states.NavigateToWaypoint(robot=robot, waypoint_designator=kitchen_designator,
                                                              radius=0.20),
                                    transitions={'arrived': 'RECITE_ORDER',
-                                                'unreachable': 'RECITE_ORDER',
-                                                'goal_not_defined': 'RECITE_ORDER'})
+                                                'unreachable': 'SAY_NAVIGATE_TO_KITCHEN_FALLBACK',
+                                                'goal_not_defined': 'SAY_NAVIGATE_TO_KITCHEN_FALLBACK'})
 
             smach.StateMachine.add('RECITE_ORDER',
                                    ReciteOrders(robot=robot, orders=orders),
@@ -149,7 +154,7 @@ class Restaurant(smach.StateMachine):
                                                 'no_response': 'BRING_OBJECTS'})
 
             # smach.StateMachine.add('WAIT_FOR_OBJECTS',
-            #                        states.WaitTime(robot=robot, waittime=5.0),
+            #                        states.WaitTime(robot=robot, waittime=10.0),
             #                        transitions={'waited': 'BRING_OBJECTS',
             #                                     'preempted': 'STOP'})
 
@@ -186,7 +191,7 @@ class Restaurant(smach.StateMachine):
                                                 'no_response': 'RETURN_TO_START'})
 
             # smach.StateMachine.add('WAIT_TO_TAKE_OBJECTS',
-            #                        states.WaitTime(robot=robot, waittime=5.0),
+            #                        states.WaitTime(robot=robot, waittime=10.0),
             #                        transitions={'waited': 'RETURN_TO_START',
             #                                     'preempted': 'STOP'})
 
