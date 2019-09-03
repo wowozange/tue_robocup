@@ -53,13 +53,38 @@ class WhereIsThis(smach.StateMachine):
                                            robot=robot,
                                            spec_designator=ds.Designator(initial_value=START_GRAMMAR),
                                            speech_result_designator=hmi_result_des.writeable),
-                                       transitions={"heard": "NAV_TO_START",
-                                                    "no_result": "STORE_STARTING_POSE"})  # ToDo: add fallbacks
+                                       transitions={"heard": "ASK_CONFIRMATION",
+                                                    "no_result": "ASK_WHERE_TO_GO"})  # ToDo: add fallbacks #option: STORE_STARTING_POSE
+
+                smach.StateMachine.add("ASK_CONFIRMATION",
+                                       states.SayFormatted(robot, ["I hear that you would like me to start the tours at"
+                                                                   " the {place}, is this correct?"],
+                                                           place=information_point_id_designator,
+                                                           block=True),
+                                       transitions={"spoken": "CONFIRM_LOCATION"})
+
+                smach.StateMachine.add("CONFIRM_LOCATION",
+                                       states.HearOptions(robot=robot, options=["yes", "no"]),
+                                       transitions={"yes": "MOVE_OUT_OF_MY_WAY",
+                                                    "no": "ASK_WHERE_TO_GO",
+                                                    "no_result": "ASK_WHERE_TO_GO"})
+
+                smach.StateMachine.add("MOVE_OUT_OF_MY_WAY",
+                                       states.Say(robot, "Please move your ass so I can get going!"),
+                                       transitions={"spoken": "TC_MOVE_TIME"})
+
+                smach.StateMachine.add("TC_MOVE_TIME",
+                                       states.WaitTime(robot=robot, waittime=3),
+                                       transitions={"waited": "NAV_TO_START",
+                                                    "preempted": "Aborted"}
+                                       )
 
                 smach.StateMachine.add("NAV_TO_START",
                                        states.NavigateToSymbolic(
                                            robot=robot,
-                                           entity_designator_area_name_map={information_point_designator: "near"},
+                                           entity_designator_area_name_map={
+                                               information_point_designator: "in_front_of"
+                                           },
                                            entity_lookat_designator=information_point_designator
                                        ),
                                        transitions={"arrived": "TURN_AROUND",
@@ -93,8 +118,8 @@ class WhereIsThis(smach.StateMachine):
                                        transitions={"done": "STORE_STARTING_POSE"})
 
                 smach.StateMachine.add("SAY_CANNOT_REACH_WAYPOINT",
-                                       states.Say(robot, "I am not able to reach the {}."
-                                                         "I'll use this as starting point if that's okay"),
+                                       states.Say(robot, "I am not able to reach the starting point."
+                                                         "I'll use this as starting point"),
                                        transitions={"spoken": "STORE_STARTING_POSE"})
             else:
                 smach.StateMachine.add("INITIALIZE",
@@ -102,6 +127,8 @@ class WhereIsThis(smach.StateMachine):
                                        transitions={"initialized": "STORE_STARTING_POSE",
                                                     "abort": "Aborted"})
 
+
+            ## This is purely for a back up scenario until the range iterator
             @smach.cb_interface(outcomes=["succeeded"])
             def store_pose(userdata=None):
                 base_loc = robot.base.get_location()

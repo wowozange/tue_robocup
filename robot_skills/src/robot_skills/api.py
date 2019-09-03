@@ -38,11 +38,13 @@ class Api(RobotPart):
         :param target: string identifying the target of the grammar to recognize
         :param timeout: timeout in seconds (float)
         """
+        rospy.sleep(2.0)  # Check if this reduces the speech bug
         if callable(self._pre_hook):
             self._pre_hook()
 
         try:
             answer = self._client.query(description, grammar, target, timeout)
+            self.restart_dragonfly()
         except TimeoutException as e:
             if callable(self._post_hook):
                 self._post_hook()
@@ -61,6 +63,16 @@ class Api(RobotPart):
         :param seconds: How many seconds you would like to display the image on the screen
         """
         compressed_image_msg = CvBridge().cv2_to_compressed_imgmsg(cv2.imread(path_to_image))
+        compressed_image_msg.header.stamp = rospy.Time.from_sec(seconds)
+        self._image_from_ros_publisher.publish(compressed_image_msg)
+
+    def show_image_from_msg(self, msg, seconds=5.0):
+        """
+        Show an image on the HMI display interface
+        :param msg: rgb msg
+        :param seconds: How many seconds you would like to display the image on the screen
+        """
+        compressed_image_msg = CvBridge().cv2_to_compressed_imgmsg(CvBridge().imgmsg_to_cv2(msg, "bgr8"))
         compressed_image_msg.header.stamp = rospy.Time.from_sec(seconds)
         self._image_from_ros_publisher.publish(compressed_image_msg)
 
