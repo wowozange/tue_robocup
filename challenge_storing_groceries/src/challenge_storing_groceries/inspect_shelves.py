@@ -16,7 +16,7 @@ class InspectShelves(smach.State):
     """ Inspect all object shelves """
 
     def __init__(self, robot, cabinet):
-        smach.State.__init__(self, outcomes=['succeeded', 'failed', 'nothing_found'])
+        super(InspectShelves, self).__init__(outcomes=['succeeded', 'failed', 'nothing_found'])
         self.robot = robot
         self.cabinet = cabinet
         self.object_shelves = config.OBJECT_SHELVES

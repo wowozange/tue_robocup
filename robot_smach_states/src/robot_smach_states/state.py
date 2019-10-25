@@ -10,7 +10,7 @@ from robot_smach_states.util.designators import Designator
 
 class State(smach.State):
     def __init__(self, *args, **kwargs):
-        smach.State.__init__(self, outcomes=kwargs['outcomes'])
+        super(State, self).__init__(outcomes=kwargs['outcomes'])
         self.__dict__['init_arguments'] = args
         print("Using State in {} is deprecated, use smach.State instead and implement execute(self, userdata) " \
               "instead of run(self, ...)".format(type(self)))
@@ -61,7 +61,7 @@ if __name__ == "__main__":
 
     class Test(smach.StateMachine):
         def __init__(self):
-            smach.StateMachine.__init__(self, outcomes=['succeeded', 'failed'])
+            super(Test, self).__init__(outcomes=['succeeded', 'failed'])
 
             with self:
                 smach.StateMachine.add('TEST_STATE1',

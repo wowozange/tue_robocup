@@ -18,7 +18,7 @@ class Initialize(smach.State):
         :param robot: (Robot)
         """
         start_robocup_recorder(robot.robot_name)
-        smach.State.__init__(self, outcomes=['initialized', 'abort'])
+        super(Initialize, self).__init__(outcomes=['initialized', 'abort'])
         self.robot = robot
 
     def execute(self, userdata=None):
@@ -45,7 +45,7 @@ class SetInitialPose(smach.State):
         :param init_position: (str) identifies the (waypoint) entity to be used as initial pose. For testing purposes,
         a tuple(float, float, float) representing x, y and yaw in map frame can be used.
         """
-        smach.State.__init__(self, outcomes=["done", "preempted", "error"])
+        super(SetInitialPose, self).__init__(outcomes=["done", "preempted", "error"])
 
         self.robot = robot
         assert isinstance(init_position, str) or isinstance(init_position, tuple) and len(init_position) == 3, \
@@ -95,8 +95,7 @@ class SetInitialPose(smach.State):
 class Trigger(smach.State):
 
     def __init__(self, robot, trigger, topic):
-        smach.State.__init__(self,
-                             outcomes=["triggered"])
+        super(Trigger, self).__init__(outcomes=["triggered"])
         self.robot = robot
         self.trigger = trigger
 
@@ -113,8 +112,7 @@ class WaitForTriggerTimeout(smach.State):
     """
 
     def __init__(self, robot, timeout, triggers, topic):
-        smach.State.__init__(self,
-                             outcomes=triggers+['preempted', 'timeout'])
+        super(WaitForTriggerTimeout, self).__init__(outcomes=triggers+['preempted', 'timeout'])
         self.timeout = timeout
         self.robot = robot
         self.triggers = triggers
@@ -158,8 +156,7 @@ class WaitForTrigger(smach.State):
                                         'preempted': 'failed'})
     """
     def __init__(self, robot, triggers, topic, rate=1.0):
-        smach.State.__init__(self,
-                             outcomes=triggers+['preempted'])
+        super(WaitForTrigger, self).__init__(outcomes=triggers+['preempted'])
         self.robot = robot
         self.triggers = triggers
         self.trigger_received = False
@@ -195,7 +192,7 @@ class WaitForTrigger(smach.State):
 
 class WaitTime(smach.State):
     def __init__(self, robot=None, waittime=10):
-        smach.State.__init__(self, outcomes=['waited','preempted'])
+        super(WaitTime, self).__init__(outcomes=['waited','preempted'])
         self.robot = robot
         self.waittime = waittime
 
@@ -221,9 +218,8 @@ class WaitCondition(smach.State):
     The arguments to the callback are userdata, robot
     """
     def __init__(self, robot, condition_callback, timeout):
-        smach.State.__init__(self,
-                             outcomes=['satisfied', 'timed_out', 'preempted'],
-                             output_keys=['trigger_value'])
+        super(WaitCondition, self).__init__(outcomes=['satisfied', 'timed_out', 'preempted'],
+                                            output_keys=['trigger_value'])
         self.condition_callback = condition_callback
         self.robot = robot
         self.timeout = timeout
@@ -246,7 +242,7 @@ class WaitCondition(smach.State):
 
 class SetTimeMarker(smach.State):
     def __init__(self, robot, designator):
-        smach.State.__init__(self, outcomes=["done"])
+        super(SetTimeMarker, self).__init__(outcomes=["done"])
         self.robot = robot
         ds.is_writeable(designator)
         self.designator = designator
@@ -262,7 +258,7 @@ class WaitForDesignator(smach.State):
     given sleep intervals (in seconds)
     """
     def __init__(self, robot, designator, attempts = 1, sleep_interval = 1, outcomes=['success','failed']):
-        smach.State.__init__(self, outcomes=["success", "failed"])
+        super(WaitForDesignator, self).__init__(outcomes=["success", "failed"])
         self.robot = robot
         self.designator = designator
         self.attempts = attempts
@@ -286,7 +282,7 @@ class WaitForDesignator(smach.State):
 
 class LockDesignator(smach.State):
     def __init__(self, locking_designator):
-        smach.State.__init__(self, outcomes=['locked'])
+        super(LockDesignator, self).__init__(outcomes=['locked'])
         self.locking_designator = locking_designator
 
     def execute(self, userdata=None):
@@ -298,7 +294,7 @@ class LockDesignator(smach.State):
 
 class UnlockDesignator(smach.State):
     def __init__(self, locking_designator):
-        smach.State.__init__(self, outcomes=['unlocked'])
+        super(UnlockDesignator, self).__init__(outcomes=['unlocked'])
         self.locking_designator = locking_designator
 
     def execute(self, userdata=None):

@@ -8,7 +8,7 @@ class ResetPart(smach.State):
         self.robot = robot
         self.part = part
         self.timeout = timeout
-        smach.State.__init__(self, outcomes=["done"])
+        super(ResetPart, self).__init__(outcomes=["done"])
 
     def execute(self, userdata=None):
         if self.timeout:
@@ -22,7 +22,7 @@ class ResetHead(smach.State):
     def __init__(self, robot, timeout=0.0):
         self.robot = robot
         self.timeout = timeout
-        smach.State.__init__(self, outcomes=["done"])
+        super(ResetHead, self).__init__(outcomes=["done"])
 
     def execute(self, userdata=None):
         rospy.logwarn("Better use another function, what do you want to achieve, straight or cancel???")
@@ -34,7 +34,7 @@ class CancelHead(smach.State):
     def __init__(self, robot, timeout=0.0):
         self.robot = robot
         self.timeout = timeout
-        smach.State.__init__(self, outcomes=["done"])
+        super(CancelHead, self).__init__(outcomes=["done"])
 
     def execute(self, userdata=None):
         rospy.logwarn("Better use another function, what do you want to achieve, straight or cancel???")
@@ -46,7 +46,7 @@ class ResetArms(smach.State):
     def __init__(self, robot, timeout=0.0):
         self.robot = robot
         self.timeout = timeout
-        smach.State.__init__(self, outcomes=["done"])
+        super(ResetArms, self).__init__(outcomes=["done"])
 
     def execute(self, userdata=None):
         for arm in self.robot.arms.itervalues():
@@ -59,7 +59,7 @@ class ResetArms(smach.State):
 class ResetED(smach.State):
     def __init__(self, robot):
         self.robot = robot
-        smach.State.__init__(self, outcomes=["done"])
+        super(ResetED, self).__init__(outcomes=["done"])
 
     def execute(self, userdata=None):
         self.robot.lights.set_color(r=1.0, g=0.0, b=0.0, a=1.0) # Red
@@ -72,7 +72,7 @@ class ResetArmsTorso(smach.State):
     def __init__(self, robot, timeout=0.0):
         self.robot = robot
         self.timeout = timeout
-        smach.State.__init__(self, outcomes=["done"])
+        super(ResetArmsTorso, self).__init__(outcomes=["done"])
 
     def execute(self, userdata=None):
         for arm in self.robot.arms.itervalues():
@@ -85,8 +85,8 @@ class ResetArmsTorso(smach.State):
 class ResetArmsTorsoHead(smach.State):
     # Checks how many tasks have been done and if another task is needed
     # Does this check with the database in the reasoner
-    def __init__(self,robot, timeout=0.0):
-        smach.State.__init__(self, outcomes=["done"])
+    def __init__(self, robot, timeout=0.0):
+        super(ResetArmsTorsoHead, self).__init__(outcomes=["done"])
         self.robot = robot
         self.timeout = timeout
 

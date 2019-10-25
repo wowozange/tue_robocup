@@ -5,7 +5,7 @@ import robot_smach_states.util.designators as ds
 
 class LearnOperatorFace(smach.StateMachine):
     def __init__(self, robot):
-        smach.StateMachine.__init__(self, outcomes=['succeeded','failed'])
+        super(LearnOperatorFace, self).__init__(outcomes=['succeeded','failed'])
 
         self.robot = robot
 

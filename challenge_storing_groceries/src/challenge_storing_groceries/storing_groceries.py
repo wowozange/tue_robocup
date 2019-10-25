@@ -21,7 +21,7 @@ from pdf import WritePdf
 
 class StoringGroceries(smach.StateMachine):
     def __init__(self, robot):
-        smach.StateMachine.__init__(self, outcomes=['Done', 'Aborted'])
+        super(StoringGroceries, self).__init__(outcomes=['Done', 'Aborted'])
         # start_waypoint = ds.EntityByIdDesignator(robot, id="manipulation_init_pose", name="start_waypoint")
 
         pdf_writer = WritePdf(robot=robot)

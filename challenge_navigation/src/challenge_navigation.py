@@ -20,7 +20,7 @@ print "=============================================="
 
 class checkTimeOut(smach.State):
     def __init__(self, robot, time_out_seconds):
-        smach.State.__init__(self, outcomes=["not_yet", "time_out"])
+        super(checkTimeOut, self).__init__(outcomes=["not_yet", "time_out"])
         self.robot = robot
         self.time_out_seconds = time_out_seconds
 
@@ -54,7 +54,7 @@ class checkTimeOut(smach.State):
 
 class Turn(smach.State):
     def __init__(self, robot, radians):
-        smach.State.__init__(self, outcomes=["turned"])
+        super(Turn, self).__init__(outcomes=["turned"])
         self.robot = robot
         self.radians = radians
 
@@ -69,7 +69,7 @@ class Turn(smach.State):
 
 class DetermineDoor(smach.State):
     def __init__(self, robot, door_id_designator):
-        smach.State.__init__(self, outcomes=["door_found","preempted"])
+        super(DetermineDoor, self).__init__(outcomes=["door_found","preempted"])
         self._robot = robot
         self._door_id_designator = door_id_designator
 
@@ -105,7 +105,7 @@ class DetermineDoor(smach.State):
 
 class SelectWaypoints(smach.State):
     def __init__(self, door_id_designator, wp_1_des, wp_2_des):
-        smach.State.__init__(self, outcomes=["done"])
+        super(SelectWaypoints, self).__init__(outcomes=["done"])
         self._door_id_designator = door_id_designator
         self._wp_1_des = wp_1_des
         self._wp_2_des = wp_2_des
@@ -125,7 +125,7 @@ class SelectWaypoints(smach.State):
 
 class DetermineObject(smach.State):
     def __init__(self, robot, entity_id, obstacle_radius):
-        smach.State.__init__(self, outcomes=["done", "timeout"])
+        super(DetermineObject, self).__init__(outcomes=["done", "timeout"])
         self._robot = robot
 
         try:

@@ -139,7 +139,7 @@ class ForceDrive(smach.State):
         :param vth: yaw-velocity
         :param duration: float indicating how long to drive
         """
-        smach.State.__init__(self, outcomes=['done'])
+        super(ForceDrive, self).__init__(outcomes=['done'])
         self._robot = robot
         self._vx = vx
         self._vy = vy
@@ -166,7 +166,7 @@ class ForceRotate(smach.State):
         :return done: rotated back and forth
         :return timedout: this takes too long
         """
-        smach.State.__init__(self, outcomes=['done', 'timedout'])
+        super(ForceRotate, self).__init__(outcomes=['done', 'timedout'])
         self._robot = robot
         self._vth = vth
         self._duration = duration
@@ -199,7 +199,7 @@ class FitEntity(smach.State):
         :param robot: robot object
         :param entity_str: string with the entity type to fit
         """
-        smach.State.__init__(self, outcomes=['succeeded', 'failed'])
+        super(FitEntity, self).__init__(outcomes=['succeeded', 'failed'])
 
         self._robot = robot
         from ed_robocup.srv import FitEntityInImage
@@ -239,7 +239,7 @@ class InspectShelves(smach.State):
     """ Inspect all object shelves """
 
     def __init__(self, robot, object_shelves):
-        smach.State.__init__(self, outcomes=['succeeded', 'failed', 'nothing_found'])
+        super(InspectShelves, self).__init__(outcomes=['succeeded', 'failed', 'nothing_found'])
         self.robot = robot
         self.object_shelves = object_shelves
 
@@ -342,7 +342,7 @@ class InspectShelves(smach.State):
 class InitializeWorldModel(smach.State):
 
     def __init__(self, robot):
-        smach.State.__init__(self, outcomes=['done'])
+        super(InitializeWorldModel, self).__init__(outcomes=['done'])
         self.robot = robot
 
     def execute(self, userdata=None):
@@ -356,7 +356,7 @@ class InitializeWorldModel(smach.State):
 class RemoveSegmentedEntities(smach.State):
     """ Removes all entities that have no shape (except _root) """
     def __init__(self, robot):
-        smach.State.__init__(self, outcomes=['done'])
+        super(RemoveSegmentedEntities, self).__init__(outcomes=['done'])
         self.robot = robot
 
     def execute(self, userdata=None):
@@ -382,7 +382,7 @@ class SegmentShelf(smach.State):
         :param entity_id: string with the id of the entity
         :param area_id: string with the id of the area
         """
-        smach.State.__init__(self, outcomes=['done'])
+        super(SegmentShelf, self).__init__(outcomes=['done'])
 
         self.robot = robot
         self._entity_id = entity_id
@@ -410,7 +410,7 @@ class ManipRecogSingleItem(smach.StateMachine):
     def __init__(self, robot, manipulated_items):
         """@param manipulated_items is VariableDesignator that will be a list of items manipulated by the robot."""
         self.manipulated_items = manipulated_items
-        smach.StateMachine.__init__(self, outcomes=['succeeded','failed'])
+        super(ManipRecogSingleItem, self).__init__(outcomes=['succeeded','failed'])
 
         self.cabinet = ds.EntityByIdDesignator(robot, id=CABINET, name="pick_shelf")
         # self.place_shelf = ds.EntityByIdDesignator(robot, id=PLACE_SHELF, name="place_shelf")

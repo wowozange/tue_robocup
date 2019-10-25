@@ -17,7 +17,7 @@ class TrackFace(smach.State):
         :param robot: robot object
         :param name: name of the person whose face should be tracked
         """
-        smach.State.__init__(self, outcomes=["aborted", "lost"])
+        super(TrackFace, self).__init__(outcomes=["aborted", "lost"])
 
         self._robot = robot
         self._name = name

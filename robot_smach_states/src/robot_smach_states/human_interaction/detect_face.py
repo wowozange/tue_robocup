@@ -17,7 +17,7 @@ class DetectFace(smach.State):
 
         :param robot: Robot API object
         """
-        smach.State.__init__(self, outcomes=['succeeded', 'failed'])
+        super(DetectFace, self).__init__(outcomes=['succeeded', 'failed'])
         self._robot = robot
 
     def execute(self, userdata):

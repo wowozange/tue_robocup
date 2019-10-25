@@ -17,7 +17,7 @@ class DummyState(smach.State):
         check_type(outcomes, str, [str])
         outcomes = list(outcomes)
         assert len(outcomes) >= 1, "Minimal one outcome should be specified"
-        smach.State.__init__(self, outcomes=outcomes)
+        super(DummyState, self).__init__(outcomes=outcomes)
         check_type(result, str)
         self.result = result
 

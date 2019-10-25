@@ -13,7 +13,7 @@ from robot_smach_states.util.designators import VariableDesignator, EdEntityDesi
 
 class SelectEntity(smach.State):
     def __init__(self, robot, entitity_classifications_designator, selected_entity_designator):
-        smach.State.__init__(self, outcomes=["entity_selected", "no_entities_left"])
+        super(SelectEntity, self).__init__(outcomes=["entity_selected", "no_entities_left"])
         self._robot = robot
         self._entity_classifications_designator = entitity_classifications_designator
         self._selected_entity_designator = selected_entity_designator
@@ -32,15 +32,14 @@ class SelectEntity(smach.State):
 
         return "entity_selected"
 
-class isitclear(smach.State):
+
+class IsItClear(smach.State):
     """
     Check if there are entities on the object in the world model
     """
 
-    def __init__(self,
-                 robot,
-                 objectIDsDes):
-        smach.State.__init__(self, outcomes=['clear', 'not_clear'])
+    def __init__(self, robot, objectIDsDes):
+        super(IsItClear, self).__init__(outcomes=['clear', 'not_clear'])
         self._robot = robot
         self._object_designator = objectIDsDes
 
@@ -61,7 +60,7 @@ class Clear(smach.StateMachine):
         :param target_location: Location where the objects will be placed
         :return:
         """
-        smach.StateMachine.__init__(self, outcomes=['done', 'failed'])
+        super(Clear, self).__init__(outcomes=['done', 'failed'])
 
         # Check types or designator resolve types
         #check_type(source_location, Entity)
@@ -87,7 +86,7 @@ class Clear(smach.StateMachine):
                                    )
 
             #smach.StateMachine.add('DETERMINE_IF_CLEAR',
-            #                       isitclear(robot=robot,
+            #                       IsItClear(robot=robot,
             #                                 objectIDsDes=segmented_entities_designator),
             #                       transitions={'clear': 'done',
             #                                    'not_clear': 'failed'})

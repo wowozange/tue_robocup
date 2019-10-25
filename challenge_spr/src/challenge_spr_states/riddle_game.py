@@ -44,7 +44,7 @@ class HearAndAnswerQuestions(smach.State):
         done: answered all questions
     """
     def __init__(self, robot, num_questions=1, hear_time=DEFAULT_HEAR_TIME):
-        smach.State.__init__(self, outcomes=["done"], input_keys=['crowd_data'])
+        super(HearAndAnswerQuestions, self).__init__(outcomes=["done"], input_keys=['crowd_data'])
         self.robot = robot
         self.num_questions = num_questions
         self.hear_time = hear_time
@@ -314,7 +314,7 @@ def answer_count_objects_in_category(action):
 
 class TestRiddleGame(smach.StateMachine):
     def __init__(self, robot):
-        smach.StateMachine.__init__(self, outcomes=['Done','Aborted'])
+        super(TestRiddleGame, self).__init__(outcomes=['Done','Aborted'])
 
         self.userdata.crowd_data = {
             "males": 3,

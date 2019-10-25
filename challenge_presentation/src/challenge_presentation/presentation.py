@@ -50,7 +50,7 @@ class Presentation(smach.State):
 
         :param robot: robot object
         """
-        smach.State.__init__(self, outcomes=["done", "preempted"])
+        super(Presentation, self).__init__(outcomes=["done", "preempted"])
 
         self.robot = robot
 
@@ -188,7 +188,7 @@ class PresentationMachine(smach.StateMachine):
             :param robot: Robot to use
             :return:
             """
-            smach.StateMachine.__init__(self, outcomes=["done", "aborted", "preempted"])
+            super(PresentationMachine, self).__init__(outcomes=["done", "aborted", "preempted"])
 
             with self:
                 smach.StateMachine.add("INITIALIZE", Initialize(robot=robot),

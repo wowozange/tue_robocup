@@ -14,7 +14,7 @@ challenge_knowledge = load_knowledge("challenge_speech_recognition")
 
 class RecognizePersons(smach.State):
     def __init__(self, robot):
-        smach.State.__init__(self, outcomes=['succeeded', 'failed'])
+        super(RecognizePersons, self).__init__(outcomes=['succeeded', 'failed'])
         self.robot = robot
 
     def _shot_valid(self, number_of_people, operator_list, detections, operator):
@@ -181,7 +181,7 @@ class RecognizePersons(smach.State):
 
 class Detect(smach.StateMachine):
     def __init__(self, robot):
-        smach.StateMachine.__init__(self, outcomes=['succeeded', 'failed'])
+        super(Detect, self).__init__(outcomes=['succeeded', 'failed'])
 
         self.turned = False
 

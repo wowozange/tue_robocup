@@ -45,7 +45,7 @@ def _get_cropped_image_from_info(info):
 
 class OperatorFeedback(smach.State):
     def __init__(self, robot, selected_entity_designator):
-        smach.State.__init__(self, outcomes=["cleanup", "no_cleanup"])
+        super(OperatorFeedback, self).__init__(outcomes=["cleanup", "no_cleanup"])
         self._robot = robot
         self._selected_entity_designator = selected_entity_designator
         self._bridge = CvBridge()
@@ -121,7 +121,7 @@ class OperatorCleanup(smach.StateMachine):
     """
     def __init__(self, robot, selected_entity_designator, location_id, segment_area):
 
-        smach.StateMachine.__init__(self, outcomes=['cleanup', 'no_cleanup'])
+        super(OperatorCleanup, self).__init__(outcomes=['cleanup', 'no_cleanup'])
 
         sentences = ["Calling my operator. Can you help me with the object %s the %s" % (segment_area, location_id),
                      "Contacting my Operator. Can you tell me more about the object %s the %s?" % (segment_area, location_id),

@@ -193,7 +193,7 @@ class ExecutePlanGuidance(smach.State):
         :param operator_radius: (float) from the point behind the robot defined by `distance`, the person must be within
         this radius
         """
-        smach.State.__init__(self, outcomes=["arrived", "blocked", "preempted", "lost_operator"])
+        super(ExecutePlanGuidance, self).__init__(outcomes=["arrived", "blocked", "preempted", "lost_operator"])
         self.robot = robot
         self._distance_threshold = 1.0  # Only check if the operator is there once we've driven for this distance
         self._operator_distance = operator_distance  # Operator is expected to follow the robot around this distance
@@ -278,7 +278,7 @@ class WaitForOperator(smach.State):
         :param distance: (float) check for the operator to be within this range of the robot
         :param radius: (float) from the point behind the robot defined by `distance`, the person must be within this radius
         """
-        smach.State.__init__(self, outcomes=["is_following", "is_lost", "preempted"])
+        super(WaitForOperator, self).__init__(outcomes=["is_following", "is_lost", "preempted"])
         self._robot = robot
         self._timeout = timeout
         self._distance = distance
@@ -317,8 +317,8 @@ class Guide(smach.StateMachine):
         :param operator_distance: (float) check for the operator to be within this range of the robot
         :param operator_radius: (float) from the point behind the robot defined by `distance`, the person must be within this radius
         """
-        smach.StateMachine.__init__(
-            self, outcomes=["arrived", "unreachable", "goal_not_defined", "lost_operator", "preempted"])
+        super(Guide, self).__init__(outcomes=
+                                    ["arrived", "unreachable", "goal_not_defined", "lost_operator", "preempted"])
         self.robot = robot
         self.operator_distance = operator_distance
         self.operator_radius = operator_radius

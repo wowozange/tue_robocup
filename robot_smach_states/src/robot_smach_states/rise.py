@@ -12,7 +12,7 @@ class RiseForHMI(smach.State):
     :param robot: Robot to execute state with
     """
     def __init__(self, robot):
-        smach.State.__init__(self, outcomes=['succeeded', 'failed'])
+        super(RiseForHMI, self).__init__(outcomes=['succeeded', 'failed'])
         self._robot = robot
 
     def execute(self, userdata=None):
@@ -36,7 +36,7 @@ class RiseForInspect(smach.State):
     :param volume: volume of the entity which is to be inspected or Designator to it.
     """
     def __init__(self, robot, entity, volume=None):
-        smach.State.__init__(self, outcomes=['succeeded', 'failed'])
+        super(RiseForInspect, self).__init__(outcomes=['succeeded', 'failed'])
         self._robot = robot
         self._entity = entity
         self._volume = volume

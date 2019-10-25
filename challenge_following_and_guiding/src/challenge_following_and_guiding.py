@@ -19,7 +19,7 @@ knowledge = load_knowledge("challenge_following_and_guiding")
 
 class StoreRobocupArena(smach.State):
     def __init__(self, robot):
-        smach.State.__init__(self, outcomes=["done"])
+        super(StoreRobocupArena, self).__init__(outcomes=["done"])
         self._robot = robot
         robot.base.local_planner.cancelCurrentPlan()
 
@@ -30,7 +30,7 @@ class StoreRobocupArena(smach.State):
 
 class HeadStraight(smach.State):
     def __init__(self, robot):
-        smach.State.__init__(self, outcomes=["done"])
+        super(HeadStraight, self).__init__(outcomes=["done"])
         self._robot = robot
 
     def execute(self, userdata=None):
@@ -39,7 +39,7 @@ class HeadStraight(smach.State):
 
 class HeadCancel(smach.State):
     def __init__(self, robot):
-        smach.State.__init__(self, outcomes=["done"])
+        super(HeadCancel, self).__init__(outcomes=["done"])
         self._robot = robot
 
     def execute(self, userdata=None):
@@ -48,7 +48,7 @@ class HeadCancel(smach.State):
 
 class WaitForOperatorCommand(smach.State):
     def __init__(self, robot):
-        smach.State.__init__(self, outcomes=["follow", "command"])
+        super(WaitForOperatorCommand, self).__init__(outcomes=["follow", "command"])
         self._robot = robot
 
     def _confirm(self, tries=3):

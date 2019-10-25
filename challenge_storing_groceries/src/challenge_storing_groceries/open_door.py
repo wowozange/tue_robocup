@@ -60,7 +60,7 @@ def _wrap_angle_pi(angle):
 
 class UpdateCabinetPose(smach.State):
     def __init__(self, robot, cabinet, cabinet_inspect_area):
-        smach.State.__init__(self, outcomes=['succeeded', 'failed'])
+        super(UpdateCabinetPose, self).__init__(outcomes=['succeeded', 'failed'])
         self.robot = robot
         self.cabinet = cabinet
         self.cabinet_inspect_area = cabinet_inspect_area
@@ -78,7 +78,7 @@ class UpdateCabinetPose(smach.State):
 
 class OpenDoor(smach.State):
     def __init__(self, robot, cabinet):
-        smach.State.__init__(self, outcomes=['succeeded', 'failed'])
+        super(OpenDoor, self).__init__(outcomes=['succeeded', 'failed'])
         self.robot = robot
         self.cabinet = cabinet
 
@@ -171,7 +171,7 @@ class OpenDoor(smach.State):
 
 class OpenDoorMachine(smach.StateMachine):
     def __init__(self, robot, cabinet_id, cabinet_navigate_area, cabinet_inspect_area):
-        smach.StateMachine.__init__(self, outcomes=["succeeded", "failed"])
+        super(OpenDoorMachine, self).__init__(outcomes=["succeeded", "failed"])
 
         self.cabinet = ds.EntityByIdDesignator(robot=robot, id=cabinet_id)
 

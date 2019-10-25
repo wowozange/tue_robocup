@@ -16,7 +16,7 @@ from inform_machine import InformMachine
 
 class WhereIsThis(smach.StateMachine):
     def __init__(self, robot):
-        smach.StateMachine.__init__(self, outcomes=['Done', 'Aborted'])
+        super(WhereIsThis, self).__init__(outcomes=['Done', 'Aborted'])
 
         with self:
             single_item = InformMachine(robot)

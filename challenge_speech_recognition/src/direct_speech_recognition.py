@@ -12,7 +12,7 @@ data = load_knowledge('challenge_speech_recognition')
 
 class HearQuestion(smach.State):
     def __init__(self, robot, time_out=rospy.Duration(15)):
-        smach.State.__init__(self, outcomes=["answered"])
+        super(HearQuestion, self).__init__(outcomes=["answered"])
         self.robot = robot
         self.time_out = time_out
 

@@ -32,7 +32,7 @@ class CleanInspect(smach.StateMachine):
         :param location_des is a designator resolving to a dictionary with fields ... TODO
         """
 
-        smach.StateMachine.__init__(self, outcomes=['done'])
+        super(CleanInspect, self).__init__(outcomes=['done'])
 #new
         # location = location_des.resolve()
         # segment_areas = location['segment_areas']

@@ -14,7 +14,7 @@ def _loginfo_color(text):
 
 class SelectEntity(smach.State):
     def __init__(self, robot, entitity_classifications_designator, selected_entity_designator):
-        smach.State.__init__(self, outcomes=["entity_selected", "no_entities_left"])
+        super(SelectEntity, self).__init__(outcomes=["entity_selected", "no_entities_left"])
         self._robot = robot
         self._entity_classifications_designator = entitity_classifications_designator
         self._selected_entity_designator = selected_entity_designator
@@ -35,7 +35,7 @@ class SelectEntity(smach.State):
 
 class DetermineAction(smach.State):
     def __init__(self, robot, selected_entity_designator):
-        smach.State.__init__(self, outcomes=["self", "operator", "failed"])
+        super(DetermineAction, self).__init__(outcomes=["self", "operator", "failed"])
         self._robot = robot
         self._selected_entity_designator = selected_entity_designator
 
@@ -96,7 +96,7 @@ class HandleDetectedEntities(smach.StateMachine):
     """
     def __init__(self, robot, found_entity_classifications_designator, location_id, segment_area):
 
-        smach.StateMachine.__init__(self, outcomes=['done'])
+        super(HandleDetectedEntities, self).__init__(outcomes=['done'])
 
         selected_entity_designator = EntityByIdDesignator(robot, "TBD", name='selected_entity_designator', )
 

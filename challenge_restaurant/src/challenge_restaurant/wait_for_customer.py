@@ -20,7 +20,7 @@ class WaitForCustomer(smach.State):
 
         :param robot: robot object
         """
-        smach.State.__init__(self, outcomes=['succeeded', 'aborted'])
+        super(WaitForCustomer, self).__init__(outcomes=['succeeded', 'aborted'])
         self._robot = robot
         self._caller_id = caller_id
         self._kitchen_designator = kitchen_designator
@@ -140,7 +140,7 @@ class WaitForClickedCustomer(smach.State):
 
         :param robot: robot object
         """
-        smach.State.__init__(self, outcomes=['succeeded', 'aborted'])
+        super(WaitForClickedCustomer, self).__init__(outcomes=['succeeded', 'aborted'])
         self._robot = robot
         self._caller_id = caller_id
         self._sub = rospy.Subscriber("/clicked_point", PointStamped, self.callback)
@@ -173,7 +173,7 @@ class AskTakeTheOrder(smach.State):
     """ Wait for the waiving person """
 
     def __init__(self, robot):
-        smach.State.__init__(self, outcomes=['yes', 'wait', 'timeout'])
+        super(AskTakeTheOrder, self).__init__(outcomes=['yes', 'wait', 'timeout'])
 
         self.robot = robot
 

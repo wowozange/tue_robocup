@@ -9,7 +9,7 @@ import rospy
 
 class SSLLookatAndRotate(smach.State):
     def __init__(self, robot):
-        smach.State.__init__(self, outcomes=["done"])
+        super(SSLLookatAndRotate, self).__init__(outcomes=["done"])
         self._robot = robot
 
     def execute(self, userdata):

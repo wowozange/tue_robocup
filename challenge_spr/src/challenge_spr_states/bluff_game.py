@@ -43,7 +43,7 @@ class HearTurnAndAnswerQuestions(smach.State):
         done: answered all questions
     '''
     def __init__(self, robot, num_questions=1, num_operators=5, hear_time=DEFAULT_HEAR_TIME):
-        smach.State.__init__(self, outcomes=["done"], input_keys=['crowd_data'])
+        super(HearTurnAndAnswerQuestions, self).__init__(outcomes=["done"], input_keys=['crowd_data'])
         self.robot = robot
         self.num_questions = num_questions
         self.num_operators = num_operators
@@ -113,7 +113,7 @@ def turn_to_closest_entity(robot, num_operators):
 
 class TestBluffGame(smach.StateMachine):
     def __init__(self, robot):
-        smach.StateMachine.__init__(self, outcomes=['Done','Aborted'])
+        super(TestBluffGame, self).__init__(outcomes=['Done','Aborted'])
 
         self.userdata.crowd_data = {
             "males": 1,

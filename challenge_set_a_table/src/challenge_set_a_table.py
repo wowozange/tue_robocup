@@ -30,7 +30,7 @@ STARTING_POINT = knowledge.starting_point
 
 class ChallengeSetATable(smach.StateMachine):
     def __init__(self, robot):
-        smach.StateMachine.__init__(self, outcomes=['Done', 'Aborted'])
+        super(ChallengeSetATable, self).__init__(outcomes=['Done', 'Aborted'])
 
         # Create designators
         grasp_designator1 = ds.EdEntityDesignator(robot, type="temp")

@@ -21,7 +21,7 @@ class TakeOutGarbage(smach.StateMachine):
 
         :param robot: robot api object
         """
-        smach.StateMachine.__init__(self, outcomes=["succeeded", "failed", "aborted"])
+        super(TakeOutGarbage, self).__init__(outcomes=["succeeded", "failed", "aborted"])
 
         # Create designators
         trashbin_designator = ds.EdEntityDesignator(robot=robot,

@@ -20,7 +20,7 @@ class MeasureForce(object):
         """
 
         """
-        smach.State.__init__(self, outcomes=["succeeded", "failed"])
+        super(MeasureForce, self).__init__(outcomes=["succeeded", "failed"])
         self._robot = robot
 
     def get_force(self):
@@ -43,7 +43,7 @@ class MeasureGarbage(smach.StateMachine):
         """
 
         """
-        smach.State.__init__(self, outcomes=["succeeded", "failed"])
+        super(MeasureGarbage, self).__init__(outcomes=["succeeded", "failed"])
         self._robot = robot
 
     def execute(self):

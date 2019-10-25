@@ -26,7 +26,7 @@ from robot_skills.util import kdl_conversions
 #         :param robot: robot api object
 #         :param room: room where person should be found
 #         """
-#         smach.State.__init__(self, outcomes=['true', 'false'])
+#         super(CheckIfPersonInRoom, self).__init__(outcomes=['true', 'false'])
 #         self._robot = robot
 #         self._room = room
 #
@@ -51,7 +51,7 @@ class FindPerson(smach.State):
         :param look_range: from what to what head angle should the robot search (defaults to -90 to +90 deg)
         :param look_steps: How many steps does it take in that range (default = 8)
         """
-        smach.State.__init__(self, outcomes=['found', 'failed'])
+        super(FindPerson, self).__init__(outcomes=['found', 'failed'])
 
         self._robot = robot
 
@@ -163,7 +163,7 @@ class _DecideNavigateState(smach.State):
         :param waypoint_designator: EdEntityDesignator that should resolve to a waypoint
         :param room_designator: EdEntityDesignator that should resolve to the room in which the waypoint is located
         """
-        smach.State.__init__(self, outcomes=["waypoint", "room", "none"])
+        super(_DecideNavigateState, self).__init__(outcomes=["waypoint", "room", "none"])
         self._robot = robot
         self._waypoint_designator = waypoint_designator
         self._room_designator = room_designator
@@ -199,7 +199,7 @@ class FindPersonInRoom(smach.StateMachine):
         :param discard_other_labels: (bool) Whether or not to discard faces based on label
         :param found_entity_designator: (Designator) A designator that will resolve to the found object
         """
-        smach.StateMachine.__init__(self, outcomes=["found", "not_found"])
+        super(FindPersonInRoom, self).__init__(outcomes=["found", "not_found"])
 
         waypoint_designator = ds.EntityByIdDesignator(robot=robot, id=area + "_waypoint")
         room_designator = ds.EntityByIdDesignator(robot=robot, id=area)

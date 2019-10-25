@@ -20,7 +20,7 @@ class LearnOperator(smach.State):
         :param learn_person_timeout: maximum time it is allowed to take to learn an operator
         :param detection_threshold: amount of detections needed before an operator is confirmed
         """
-        smach.State.__init__(self, outcomes=['done', 'failed', 'aborted'],
+        super(LearnOperator, self).__init__(outcomes=['done', 'failed', 'aborted'],
                              input_keys=['operator_learn_in'],
                              output_keys=['operator_learn_out'])
         self._robot = robot

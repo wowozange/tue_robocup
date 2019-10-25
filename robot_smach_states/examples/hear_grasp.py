@@ -8,7 +8,7 @@ from robot_smach_states import Initialize
 
 class Hear(smach.State):
     def __init__(self, robot):
-        smach.State.__init__(self, outcomes=['succeeded', 'failed', 'preempted'],
+        super(Hear, self).__init__(outcomes=['succeeded', 'failed', 'preempted'],
                              output_keys=['heared'])
         self.robot = robot
 
@@ -25,7 +25,7 @@ class Hear(smach.State):
 
 class GetEntitysByType(smach.State):
     def __init__(self, robot):
-        smach.State.__init__(self, outcomes=['succeeded', 'failed'],
+        super(GetEntitysByType, self).__init__(outcomes=['succeeded', 'failed'],
                              input_keys=['type'],
                              output_keys=['entity'])
         self.robot = robot

@@ -34,7 +34,7 @@ class AutomaticSideDetection2(smach.State):
             'left': VectorStamped(look_x, look_y, z=0, frame_id="/" + robot.robot_name + "/base_link"),
             'right': VectorStamped(look_x, -look_y, z=0, frame_id="/" + robot.robot_name + "/base_link"),
         }
-        smach.State.__init__(self, outcomes=self._sides.keys())
+        super(AutomaticSideDetection2, self).__init__(outcomes=self._sides.keys())
 
         self._robot = robot
         self._get_normal_score = rospy.ServiceProxy('/' + self._robot.robot_name + '/top_kinect/get_normal_score',
@@ -86,7 +86,7 @@ class AutomaticSideDetection(smach.State):
                 "entities": []
             },
         }
-        smach.State.__init__(self, outcomes=self._sides.keys())
+        super(AutomaticSideDetection, self).__init__(outcomes=self._sides.keys())
         self._robot = robot
         self._background_padding = background_padding
         self._max_radius = max_radius
@@ -188,7 +188,7 @@ class StoreWaypoint(smach.State):
         :param robot: robot object
         :param location_id: string identifying the location to store
         """
-        smach.State.__init__(self, outcomes=["done"])
+        super(StoreWaypoint, self).__init__(outcomes=["done"])
         self._robot = robot
         self._location_id = location_id
         self._waypoint_pub = rospy.Publisher("/restaurant_waypoints", Marker, queue_size=10)

@@ -26,7 +26,7 @@ class DetectCrowd(smach.State):
     Detect a crowd and describe it based on individual detections
     """
     def __init__(self, robot):
-        smach.State.__init__(self, outcomes=['succeeded', 'failed'], output_keys=['crowd_data'])
+        super(DetectCrowd, self).__init__(outcomes=['succeeded', 'failed'], output_keys=['crowd_data'])
         self.robot = robot
         self._people_sub = rospy.Subscriber(robot.robot_name + '/persons', People, self.people_cb, queue_size=1)
         self.people_received = People()
@@ -196,7 +196,7 @@ class DetectCrowd(smach.State):
 
 class TestDetectCrowd(smach.StateMachine):
     def __init__(self, robot):
-        smach.StateMachine.__init__(self, outcomes=['Done','Aborted'])
+        super(TestDetectCrowd, self).__init__(outcomes=['Done','Aborted'])
 
         with self:
             smach.StateMachine.add('INITIALIZE',

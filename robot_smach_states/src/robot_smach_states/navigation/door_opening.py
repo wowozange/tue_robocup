@@ -34,7 +34,7 @@ class ForceDriveToTouchDoor(smach.State):
     """
 
     def __init__(self, robot, approach_speed=0.1):
-        smach.State.__init__(self, outcomes=['front', 'left', 'right', 'failed'])
+        super(ForceDriveToTouchDoor, self).__init__(outcomes=['front', 'left', 'right', 'failed'])
         self.robot = robot
 
         self.approach_speed = approach_speed
@@ -282,7 +282,7 @@ class PushSidewaysAndBack(smach.State):
     Test in amigo-console with state_machine.PushSidewaysAndBack(amigo, 0.2, 0.05).execute()
     """
     def __init__(self, robot, y_dist, speed=0.1):
-        smach.State.__init__(self, outcomes=['succeeded', 'failed'])
+        super(PushSidewaysAndBack, self).__init__(outcomes=['succeeded', 'failed'])
         self.robot = robot
         self.y_dist = y_dist
         self.speed = speed
@@ -311,7 +311,7 @@ class CheckDoorPassable(smach.State):
         :param door_entity_designator: The door which to pass
         :return:
         """
-        smach.State.__init__(self, outcomes=['passable', 'blocked'])
+        super(CheckDoorPassable, self).__init__(outcomes=['passable', 'blocked'])
 
         self.robot = robot
         self.door_entity_designator = door_entity_designator
@@ -388,7 +388,7 @@ class OpenDoorByPushing(smach.StateMachine):
         :param push_speed: Speed with which to push against the door
         :return:
         """
-        smach.StateMachine.__init__(self, outcomes=['succeeded', 'failed'])
+        super(OpenDoorByPushing, self).__init__(outcomes=['succeeded', 'failed'])
 
         #door_start_wp_designator = WaypointOfDoorDesignator(robot, door_entity_designator, direction='start', name='door_open_start')
         #door_dest_wp_designator = WaypointOfDoorDesignator(robot, door_entity_designator, direction='destination', name='door_open_dest')

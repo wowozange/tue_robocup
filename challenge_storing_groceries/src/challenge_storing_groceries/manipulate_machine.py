@@ -79,7 +79,7 @@ class GrabSingleItem(smach.StateMachine):
         :param grab_designator: EdEntityDesignator designating the item to grab. If not provided, a default one is
         constructed (grabs the closest object in the volume of the surface)
         """
-        smach.StateMachine.__init__(self, outcomes=["succeeded", "failed"])
+        super(GrabSingleItem, self).__init__(outcomes=["succeeded", "failed"])
 
         # Create designators
         self.empty_arm_designator = ds.UnoccupiedArmDesignator(robot, {}, name="empty_arm_designator")
@@ -137,7 +137,7 @@ class PlaceSingleItem(smach.State):
         :param robot: robot object
         :param place_designator: Designator that resolves to the pose to place at. E.g. an EmptySpotDesignator
         """
-        smach.State.__init__(self, outcomes=["succeeded", "failed"])
+        super(PlaceSingleItem, self).__init__(outcomes=["succeeded", "failed"])
 
         self._robot = robot
         if place_designator is not None:
@@ -192,7 +192,7 @@ class ManipulateMachine(smach.StateMachine):
         :param grab_designator_2: EdEntityDesignator designating the item to grab
         :param pdf_writer: WritePDF object to save images of recognized objects to pdf files
         """
-        smach.StateMachine.__init__(self, outcomes=["succeeded", "failed"])
+        super(ManipulateMachine, self).__init__(outcomes=["succeeded", "failed"])
 
         # Create designators
         self.table_designator = ds.EntityByIdDesignator(robot, id="temp")  # will be updated later on

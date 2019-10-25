@@ -127,7 +127,7 @@ class Example(smach.StateMachine):
 
         :param robot: robot api object
         """
-        smach.StateMachine.__init__(self, outcomes=["succeeded", "failed", "aborted"])
+        super(Example, self).__init__(outcomes=["succeeded", "failed", "aborted"])
 
         with self:
             smach.StateMachine.add("HELLO_WORLD", states.Say(robot, "Hello world"), transitions={"spoken": "succeeded"})
@@ -137,7 +137,7 @@ class Example(smach.StateMachine):
 * `import robot_smach_states as states` imports [the smach states](https://github.com/tue-robotics/tue_robocup/tree/master/robot_smach_states) that have been developed in the TU/e Robotics lab
 * `class Example(smach.StateMachine):` defines the statemachine that we are implementing. The `smach.StateMachine` between brackets shows that the `Example` class <a href="https://en.wikipedia.org/wiki/Inheritance_(object-oriented_programming)">inherits</a>  from the `smach.StateMachine` class. (If you don't know what inheritance means you might want to study that first)
 * `def __init__(self, robot):` defines the signature of the initialization method. Basically, each class needs such a function. In this case, we need to supply the Robot object that was instantiated previously in our script.
-* `smach.StateMachine.__init__(self, outcomes=["succeeded", "failed", "aborted"])` calls the initialization method of the parent class. Here, we also define the outcomes of our statemachine to `succeeded`, `failed` and `aborted`.
+* `super(Example, self).__init__(outcomes=["succeeded", "failed", "aborted"])` calls the initialization method of the parent class. Here, we also define the outcomes of our statemachine to `succeeded`, `failed` and `aborted`.
 * `states.Say(robot, "Hello world")` instantiates a `Say` state using our robot object and the sentence "Hello world"
 * `smach.StateMachine.add` adds this state to our statemachine and calls it "HELLO_WORLD". Furthermore, it connects the one outcome of the `Say` state, being `spoken` to the `succeeded` outcome of our statemachine.
 

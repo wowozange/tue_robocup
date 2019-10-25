@@ -61,7 +61,7 @@ class CheckIfDescribedEntityAvailable(smach.State):
                  description_designator,
                  found_entity_designator,
                  candidate_entities_designator=None):
-        smach.State.__init__(self, outcomes=['succeeded', 'failed'])
+        super(CheckIfDescribedEntityAvailable, self).__init__(outcomes=['succeeded', 'failed'])
         self._robot = robot
         self._knowledge = knowledge
         self._description_designator = description_designator
@@ -96,7 +96,7 @@ class Find(smach.StateMachine):
     """
     def __init__(self, robot, knowledge, source_entity_designator, description_designator, area_name_designator,
                  navigation_area_designator, found_entity_designator):
-        smach.StateMachine.__init__(self, outcomes=['succeeded', 'inspect_failed', 'not_found'])
+        super(Find, self).__init__(outcomes=['succeeded', 'inspect_failed', 'not_found'])
 
         segmented_entities_designator = VariableDesignator([], resolve_type=[ClassificationResult])
 

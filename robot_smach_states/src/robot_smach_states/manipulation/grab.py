@@ -25,7 +25,7 @@ class PrepareEdGrasp(smach.State):
         :param arm: Designator that resolves to arm to grab with. E.g. UnoccupiedArmDesignator
         :param grab_entity: Designator that resolves to the entity to grab. e.g EntityByIdDesignator
         """
-        smach.State.__init__(self, outcomes=['succeeded', 'failed'])
+        super(PrepareEdGrasp, self).__init__(outcomes=['succeeded', 'failed'])
 
         # Assign member variables
         self.robot = robot
@@ -75,7 +75,7 @@ class PickUp(smach.State):
         :param arm: Designator that resolves to the arm to grab the grab_entity with. E.g. UnoccupiedArmDesignator
         :param grab_entity: Designator that resolves to the entity to grab. e.g EntityByIdDesignator
         """
-        smach.State.__init__(self, outcomes=['succeeded', 'failed'])
+        super(PickUp, self).__init__(outcomes=['succeeded', 'failed'])
 
         # Assign member variables
         self.robot = robot
@@ -278,7 +278,7 @@ class ResetOnFailure(smach.StateMachine):
         """ Constructor
         :param robot: robot object
         """
-        smach.StateMachine.__init__(self, outcomes=['done'])
+        super(ResetOnFailure, self).__init__(outcomes=['done'])
 
         self._robot = robot
         self.arm_designator = arm
@@ -309,7 +309,7 @@ class Grab(smach.StateMachine):
         :param arm: Designator that resolves to the arm to use for grabbing. Eg. UnoccupiedArmDesignator
         :return:
         """
-        smach.StateMachine.__init__(self, outcomes=['done', 'failed'])
+        super(Grab, self).__init__(outcomes=['done', 'failed'])
 
         # Check types or designator resolve types
         check_type(item, Entity)

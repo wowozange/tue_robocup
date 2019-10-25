@@ -17,7 +17,7 @@ from challenge_spr_states import riddle_game
 
 class ChallengeSpeechPersonRecognition(smach.StateMachine):
     def __init__(self, robot):
-        smach.StateMachine.__init__(self, outcomes=['Done','Aborted'])
+        super(ChallengeSpeechPersonRecognition, self).__init__(outcomes=['Done','Aborted'])
 
         with self:
             smach.StateMachine.add('INITIALIZE',

@@ -10,7 +10,7 @@ from robot_skills.classification_result import ClassificationResult
 class CleanInspect(smach.StateMachine):
     def __init__(self, robot, location_id, room_id, navigate_area, segment_areas, known_types):
 
-        smach.StateMachine.__init__(self, outcomes=['done'])
+        super(CleanInspect, self).__init__(outcomes=['done'])
 
         # Set up the designators for this machine
         e_classifications_des = VariableDesignator([], resolve_type=[ClassificationResult], name='e_classifications_des')

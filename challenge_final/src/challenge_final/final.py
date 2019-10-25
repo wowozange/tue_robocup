@@ -20,7 +20,7 @@ class ChallengeFinal(smach.StateMachine):
         """ Constructor
         :param robot: robot object
         """
-        smach.StateMachine.__init__(self, outcomes=["Done", "Aborted"])
+        super(ChallengeFinal, self).__init__(outcomes=["Done", "Aborted"])
 
         # Designators
         furniture_move_designator = PointingDesignator(robot=robot)

@@ -25,7 +25,7 @@ class DriveIn(smach.StateMachine):
         :param unav_drink_des: (VariableDesignator) in which the unavailable drink is stored
         :param objects: Objects from common knowledge
         """
-        smach.StateMachine.__init__(self, outcomes=["succeeded", "failed", "aborted"])
+        super(DriveIn, self).__init__(outcomes=["succeeded", "failed", "aborted"])
 
         # ToDo: check the storing of the available drinks: see inspect_shelves from challenge storing groceries,
         #  inspections designator is in smach states -> world model

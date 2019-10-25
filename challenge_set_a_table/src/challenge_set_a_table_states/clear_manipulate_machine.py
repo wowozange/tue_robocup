@@ -33,7 +33,7 @@ class ClearManipulateMachine(smach.StateMachine):
         :param place_furniture_id1: string identifying the furniture object where to place objects 1 and 2
         :param place_furniture_id2: string identifying the furniture object where to place object 3
         """
-        smach.StateMachine.__init__(self, outcomes=["succeeded", "failed"])
+        super(ClearManipulateMachine, self).__init__(outcomes=["succeeded", "failed"])
 
         # Create designators
         grasp_furniture_designator = ds.EntityByIdDesignator(robot, id=grasp_furniture_id)

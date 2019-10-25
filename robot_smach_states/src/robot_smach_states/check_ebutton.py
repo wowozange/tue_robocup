@@ -12,8 +12,7 @@ from human_interaction import Say
 class CheckEButton(smach.State):
     """Check if the robot's Emergency button is pressed"""
     def __init__(self, robot=None):
-        smach.State.__init__(self, outcomes=["pressed",
-                                             "released"])
+        super(CheckEButton, self).__init__(outcomes=["pressed", "released"])
         self.robot = robot
 
     def execute(self, userdata=None):
@@ -31,7 +30,7 @@ class NotifyEButton(smach.StateMachine):
     """Alert the operator that the robot's Emergency button is still pressed"""
 
     def __init__(self, robot):
-        smach.StateMachine.__init__(self, outcomes=["succeeded"])
+        super(NotifyEButton, self).__init__(outcomes=["succeeded"])
         assert hasattr(robot, "ebutton")
         assert hasattr(robot, "speech")
 

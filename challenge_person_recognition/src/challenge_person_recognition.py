@@ -16,7 +16,7 @@ from person_recognition_states import LearnOperatorFace, Detect
 
 class ChallengePersonRecognition(smach.StateMachine):
     def __init__(self, robot):
-        smach.StateMachine.__init__(self, outcomes=['Done','Aborted'])
+        super(ChallengePersonRecognition, self).__init__(outcomes=['Done','Aborted'])
 
         #  -----------------------------------------------------------------
 

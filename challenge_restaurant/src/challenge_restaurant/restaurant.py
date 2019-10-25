@@ -16,7 +16,7 @@ class Restaurant(smach.StateMachine):
 
         :param robot: robot object
         """
-        smach.StateMachine.__init__(self, outcomes=['STOP'])
+        super(Restaurant, self).__init__(outcomes=['STOP'])
 
         start_pose = robot.base.get_location()
         start_x = start_pose.frame.p.x()

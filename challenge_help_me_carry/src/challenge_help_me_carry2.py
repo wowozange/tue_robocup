@@ -21,7 +21,7 @@ print "=============================================="
 
 class ChallengeHelpMeCarry(smach.StateMachine):
     def __init__(self, robot):
-        smach.StateMachine.__init__(self, outcomes=['Done', 'Aborted'])
+        super(ChallengeHelpMeCarry, self).__init__(outcomes=['Done', 'Aborted'])
 
         self.target_destination = ds.EntityByIdDesignator(robot, id=challenge_knowledge.default_place)
 

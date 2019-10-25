@@ -97,7 +97,7 @@ class Say(smach.State):
         :return: spoken
         :rtype: str
         """
-        smach.State.__init__(self, outcomes=["spoken"])
+        super(Say, self).__init__(outcomes=["spoken"])
 
         ds.check_type(sentence, [str], str)
         assert(isinstance(language, str) or isinstance(language, type(None)))
@@ -165,7 +165,7 @@ class HearOptions(smach.State):
     def __init__(self, robot, options, timeout=rospy.Duration(10), look_at_standing_person=True):
         outcomes = list(options)  # make a copy
         outcomes.append("no_result")
-        smach.State.__init__(self, outcomes=outcomes)
+        super(HearOptions, self).__init__(outcomes=outcomes)
         self._options = options
         self._robot = robot
         self._timeout = timeout
@@ -230,7 +230,7 @@ class HearOptionsExtra(smach.State):
                  speech_result_designator,
                  time_out=rospy.Duration(10),
                  look_at_standing_person=True):
-        smach.State.__init__(self, outcomes=["heard", "no_result"])
+        super(HearOptionsExtra, self).__init__(outcomes=["heard", "no_result"])
 
         self.robot = robot
 
@@ -274,7 +274,7 @@ class HearOptionsExtra(smach.State):
 
 class AskContinue(smach.StateMachine):
     def __init__(self, robot, timeout=rospy.Duration(10)):
-        smach.StateMachine.__init__(self, outcomes=['continue', 'no_response'])
+        super(AskContinue, self).__init__(outcomes=['continue', 'no_response'])
         self.robot = robot
         self.timeout = timeout
 
@@ -294,7 +294,7 @@ class AskContinue(smach.StateMachine):
 
 class AskYesNo(HearOptions):
     def __init__(self, robot, timeout=rospy.Duration(10)):
-        HearOptions.__init__(self, robot, ['yes', 'no'], timeout)
+        super(AskYesNo, self).__init__(robot, ['yes', 'no'], timeout)
 
 
 class WaitForPersonInFront(smach.State):
@@ -306,7 +306,7 @@ class WaitForPersonInFront(smach.State):
         :param attempts: (int) number of attempts the robot will take
         :param sleep_interval: (float) time the robot waits between checking for an operator
         """
-        smach.State.__init__(self, outcomes=["success", "failed"])
+        super(WaitForPersonInFront, self).__init__(outcomes=["success", "failed"])
         self.robot = robot
         self.attempts = attempts
         self.sleep_interval = sleep_interval
@@ -341,7 +341,7 @@ class LearnPerson(smach.State):
         person name is provided
         :param nr_tries: maximum number of tries
         """
-        smach.State.__init__(self, outcomes=["succeeded", "failed"])
+        super(LearnPerson, self).__init__(outcomes=["succeeded", "failed"])
 
         self._robot = robot
         self._person_name = person_name
@@ -430,7 +430,7 @@ class AskPersonName(smach.State):
     """
 
     def __init__(self, robot, person_name_des, name_options, default_name='Operator', nr_tries=2):
-        smach.State.__init__(self, outcomes=['succeeded', 'failed', 'timeout'])
+        super(AskPersonName, self).__init__(outcomes=['succeeded', 'failed', 'timeout'])
 
         self.robot = robot
         self.person_name_des = person_name_des

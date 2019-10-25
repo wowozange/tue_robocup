@@ -8,7 +8,7 @@ import smach
 
 class StartAnalyzer(smach.State):
     def __init__(self, robot):
-        smach.State.__init__(self,outcomes=['done'])
+        super(StartAnalyzer, self).__init__(self,outcomes=['done'])
         self.robot = robot
 
     def execute(self, userdata=None):
@@ -18,7 +18,7 @@ class StartAnalyzer(smach.State):
 
 class StopAnalyzer(smach.State):
     def __init__(self, robot, result):
-        smach.State.__init__(self,outcomes=['done'])
+        super(StopAnalyzer, self).__init__(self,outcomes=['done'])
         self.robot  = robot
         self.result = result
 
@@ -29,7 +29,7 @@ class StopAnalyzer(smach.State):
 
 class AbortAnalyzer(smach.State):
     def __init__(self, robot):
-        smach.State.__init__(self,outcomes=['done'])
+        super(AbortAnalyzer, self).__init__(self,outcomes=['done'])
         self.robot  = robot
 
     def execute(self, userdata=None):
@@ -39,7 +39,7 @@ class AbortAnalyzer(smach.State):
 
 class getPlan(smach.State):
     def __init__(self, robot, constraint_function, speak=True):
-        smach.State.__init__(self,
+        super(getPlan, self).__init__(self,
             outcomes=['unreachable','goal_not_defined','goal_ok','preempted'])
         self.robot = robot
         self.constraint_function = constraint_function
@@ -80,7 +80,7 @@ class getPlan(smach.State):
 
 class executePlan(smach.State):
     def __init__(self, robot, breakout_function, blocked_timeout = 4, reset_head=True):
-        smach.State.__init__(self,outcomes=['succeeded','arrived','blocked','preempted'])
+        super(executePlan, self).__init__(self,outcomes=['succeeded','arrived','blocked','preempted'])
         self.robot = robot
         self.t_last_free = None
         self.blocked_timeout = blocked_timeout
@@ -157,7 +157,7 @@ class executePlan(smach.State):
 
 class planBlocked(smach.State):
     def __init__(self, robot):
-        smach.State.__init__(self,outcomes=['blocked', 'free'])
+        super(planBlocked, self).__init__(self,outcomes=['blocked', 'free'])
         self.robot = robot
 
     def execute(self, userdata=None):
@@ -200,8 +200,8 @@ class planBlocked(smach.State):
 
 class NavigateTo(smach.StateMachine):
     def __init__(self, robot, reset_head=True, speak=True, input_keys=[], output_keys=[]):
-        smach.StateMachine.__init__(self, outcomes=['arrived', 'unreachable', 'goal_not_defined'],
-                                    input_keys=input_keys, output_keys=output_keys)
+        super(NavigateTo, self).__init__(outcomes=['arrived', 'unreachable', 'goal_not_defined'],
+                                         input_keys=input_keys, output_keys=output_keys)
         self.robot = robot
         self.speak = speak
 
@@ -307,7 +307,7 @@ class ForceDrive(smach.State):
         :param vth: yaw-velocity (rad/s)
         :param duration: float indicating how long to drive (seconds)
         """
-        smach.State.__init__(self, outcomes=['done'])
+        super(ForceDrive, self).__init__(outcomes=['done'])
         self._robot = robot
         self._vx = vx
         self._vy = vy

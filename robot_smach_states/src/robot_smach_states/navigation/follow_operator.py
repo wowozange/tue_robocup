@@ -49,7 +49,7 @@ class FollowOperator(smach.State):
         :param operator_standing_still_timeout:
         :param replan:
         """
-        smach.State.__init__(self, outcomes=["stopped", 'lost_operator', "no_operator"])
+        super(FollowOperator, self).__init__(outcomes=["stopped", 'lost_operator', "no_operator"])
         self._robot = robot
         self._time_started = None
         self._operator = None

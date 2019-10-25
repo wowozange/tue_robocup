@@ -22,12 +22,6 @@ class WaitForOperatorCommand(smach.State):
     """
     def __init__(self, robot, possible_commands, commands_as_outcomes=False, commands_as_userdata=False, target=None):
 
-        self._robot = robot
-        self._possible_commands = possible_commands
-        self._commands_as_outcomes = commands_as_outcomes
-        self._commands_as_userdata = commands_as_userdata
-        self.target_destination = target
-
         if commands_as_outcomes:  # each possible command is a separate outcome
             _outcomes = possible_commands + ['abort']
         else:  # outcome is success or abort, recognized command is returned using output_keys
@@ -38,7 +32,13 @@ class WaitForOperatorCommand(smach.State):
         else:  # do not pass data to the next state
             _output_keys = []
 
-        smach.State.__init__(self, outcomes=_outcomes, output_keys=_output_keys)
+        super(WaitForOperatorCommand, self).__init__(outcomes=_outcomes, output_keys=_output_keys)
+
+        self._robot = robot
+        self._possible_commands = possible_commands
+        self._commands_as_outcomes = commands_as_outcomes
+        self._commands_as_userdata = commands_as_userdata
+        self.target_destination = target
 
     def _listen_for_commands(self, tries=5, time_out=30):
         for i in range(0, tries):
@@ -87,7 +87,7 @@ class StoreCarWaypoint(smach.State):
 
     """
     def __init__(self, robot):
-        smach.State.__init__(self, outcomes=['success', 'abort'])
+        super(StoreCarWaypoint, self).__init__(outcomes=['success', 'abort'])
         self._robot = robot
 
     def execute(self, userdata=None):
@@ -105,7 +105,7 @@ class TurnToReplan(smach.State):
     Turn 180 degrees to attempt to find a new (reachable) plan
     """
     def __init__(self, robot):
-        smach.State.__init__(self, outcomes=['success', 'abort'])
+        super(TurnToReplan, self).__init__(outcomes=['success', 'abort'])
         self._robot = robot
 
     def execute(self, userdata=None):
@@ -125,7 +125,7 @@ class DropBagOnGround(smach.StateMachine):
         :param arm_designator: ArmDesignator resolving to Arm holding the bag to drop
 
         """
-        smach.StateMachine.__init__(self, outcomes=['done'])
+        super(DropBagOnGround, self).__init__(outcomes=['done'])
 
         check_type(arm_designator, Arm)
 

@@ -12,7 +12,7 @@ challenge_knowledge = load_knowledge('r5cop_demo')
 
 class VerifyWorldModelInfo(smach.State):
     def __init__(self, robot):
-        smach.State.__init__(self, outcomes=["failed", "done"])
+        super(VerifyWorldModelInfo, self).__init__(outcomes=["failed", "done"])
         self._robot = robot
 
     def execute(self, userdata):

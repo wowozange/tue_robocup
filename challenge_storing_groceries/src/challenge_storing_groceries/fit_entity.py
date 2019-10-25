@@ -10,7 +10,7 @@ class FitEntity(smach.State):
         :param robot: robot object
         :param entity_str: string with the entity type to fit
         """
-        smach.State.__init__(self, outcomes=['succeeded', 'failed'])
+        super(FitEntity, self).__init__(outcomes=['succeeded', 'failed'])
 
         self._robot = robot
         self._srv = rospy.ServiceProxy(robot.robot_name + '/ed/fit_entity_in_image', FitEntityInImage)

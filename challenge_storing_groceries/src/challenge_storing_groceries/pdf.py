@@ -27,7 +27,7 @@ class WritePdf(smach.State):
 
         :param robot: robot object
         """
-        smach.State.__init__(self, outcomes=["done"])
+        super(WritePdf, self).__init__(outcomes=["done"])
 
         self._robot = robot
         self._items = {}  # Dict mapping entity id to tuples: entity, probability, and filename of images

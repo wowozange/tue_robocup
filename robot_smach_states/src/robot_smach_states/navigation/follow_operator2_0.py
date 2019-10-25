@@ -38,9 +38,7 @@ class Track(smach.State):
         :param robot: robot object (amigo, sergio)
         :param _buffer:
         """
-        smach.State.__init__(self,
-                             outcomes=['track', 'no_track', 'aborted'],
-                             input_keys=['operator_track_in'])
+        super(Track, self).__init__(outcomes=['track', 'no_track', 'aborted'], input_keys=['operator_track_in'])
         self.counter = 0
         self._period = 0.3  # fix this magic number
         self._operator_pub = rospy.Publisher('/%s/follow_operator/operator_position' % robot.robot_name,
@@ -125,8 +123,8 @@ class FollowBread(smach.State):
         :param operator_radius: the assumed radius of the operator for position constraint
         :param lookat_radius: all breadcrumbs within the lookat_radius are deleted
         """
-        smach.State.__init__(self,
-                             outcomes=['follow_bread', 'no_follow_bread_ask_finalize', 'no_follow_bread_recovery'])
+        super(FollowBread, self).__init__(outcomes=
+                                          ['follow_bread', 'no_follow_bread_ask_finalize', 'no_follow_bread_recovery'])
         self._robot = robot
         self._operator_radius = operator_radius
         self._lookat_radius = lookat_radius
@@ -304,8 +302,7 @@ class Recovery(smach.State):
         :param lost_distance: radius in which to find the laser entity of the operator based on the converted location
                               from the RGBD image
         """
-        smach.State.__init__(self, outcomes=['Failed', 'follow'],
-                             output_keys=['recovered_operator'])
+        super(Recovery, self).__init__(outcomes=['Failed', 'follow'], output_keys=['recovered_operator'])
         self._robot = robot
         self._operator_name = "operator"
         self._lost_timeout = lost_timeout
@@ -389,7 +386,7 @@ class FollowOperator2(smach.StateMachine):
         """
         :param robot: robot object (amigo, sergio)
         """
-        smach.StateMachine.__init__(self, outcomes=['Done', 'Failed', 'Aborted'])
+        super(FollowOperator2, self).__init__(outcomes=['Done', 'Failed', 'Aborted'])
         self.robot = robot
         self.userdata.operator = None
 

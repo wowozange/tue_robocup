@@ -32,7 +32,7 @@ class ServeOneDrink(smach.StateMachine):
         :param objects: Objects from common knowledge
         """
 
-        smach.StateMachine.__init__(self, outcomes=["succeeded", "failed", "aborted"])
+        super(ServeOneDrink, self).__init__(outcomes=["succeeded", "failed", "aborted"])
 
         # Designators
         arm_designator = ds.UnoccupiedArmDesignator(robot=robot, arm_properties={}, name='arm_des')

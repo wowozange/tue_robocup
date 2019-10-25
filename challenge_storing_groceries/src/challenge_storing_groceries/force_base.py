@@ -11,7 +11,7 @@ class ForceDrive(smach.State):
         :param vth: yaw-velocity
         :param duration: float indicating how long to drive
         """
-        smach.State.__init__(self, outcomes=['done'])
+        super(ForceDrive, self).__init__(outcomes=['done'])
         self._robot = robot
         self._vx = vx
         self._vy = vy
@@ -37,7 +37,7 @@ class ForceRotate(smach.State):
         :return done: rotated back and forth
         :return timedout: this takes too long
         """
-        smach.State.__init__(self, outcomes=['done', 'timedout'])
+        super(ForceRotate, self).__init__(outcomes=['done', 'timedout'])
         self._robot = robot
         self._vth = vth
         self._duration = duration

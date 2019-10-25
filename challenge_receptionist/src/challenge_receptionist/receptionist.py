@@ -65,7 +65,7 @@ class LearnGuest(smach.StateMachine):
         :param guest_name_des: designator that the name (str) of the guest is written to
         :param guest_drink_des: designator that the drink type (str) of the drink the guest wants
         """
-        smach.StateMachine.__init__(self, outcomes=['succeeded', 'abort'])
+        super(LearnGuest, self).__init__(outcomes=['succeeded', 'abort'])
 
         self.drink_spec_des = ds.Designator(challenge_knowledge.common.drink_spec, name='drink_spec')
 
@@ -129,7 +129,7 @@ class LearnGuest(smach.StateMachine):
 
 class IntroduceGuestToOperator(smach.StateMachine):
     def __init__(self, robot, operator_des, guest_ent_des, guest_name_des, guest_drinkname_des):
-        smach.StateMachine.__init__(self, outcomes=['succeeded', 'abort'])
+        super(IntroduceGuestToOperator, self).__init__(outcomes=['succeeded', 'abort'])
 
         ds.check_type(guest_name_des, str)
         ds.check_type(guest_drinkname_des, str)
@@ -187,7 +187,7 @@ class IntroduceGuestToOperator(smach.StateMachine):
 
 class CheckVolumeEmpty(smach.StateMachine):
     def __init__(self, robot, entity_des, volume):
-        smach.StateMachine.__init__(self, outcomes=['empty', 'occupied', 'failed'])
+        super(CheckVolumeEmpty, self).__init__(outcomes=['empty', 'occupied', 'failed'])
 
         seen_entities_des = ds.VariableDesignator([], resolve_type=[ClassificationResult])
 
@@ -211,7 +211,7 @@ class CheckVolumeEmpty(smach.StateMachine):
 
 class FindEmptySeat(smach.StateMachine):
     def __init__(self, robot, seats_to_inspect):
-        smach.StateMachine.__init__(self, outcomes=['succeeded', 'abort'])
+        super(FindEmptySeat, self).__init__(outcomes=['succeeded', 'abort'])
 
         # We have to find an *empty* seat in the given room
         # I'd say: iterate over all seat-type objects and check that their 'on-top-of' volume is empty
@@ -234,7 +234,7 @@ class FindEmptySeat(smach.StateMachine):
 
 class ChallengeReceptionist(smach.StateMachine):
     def __init__(self, robot):
-        smach.StateMachine.__init__(self, outcomes=['succeeded', 'abort'])
+        super(ChallengeReceptionist, self).__init__(outcomes=['succeeded', 'abort'])
 
         self.door_waypoint = ds.EntityByIdDesignator(robot, id=challenge_knowledge.waypoint_door['id'])
         self.livingroom_waypoint = ds.EntityByIdDesignator(robot, id=challenge_knowledge.waypoint_livingroom['id'])

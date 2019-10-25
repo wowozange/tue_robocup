@@ -12,7 +12,7 @@ class PickupItem(smach.StateMachine):
         """ Constructor
         :param robot: robot object
         """
-        smach.StateMachine.__init__(self, outcomes=["succeeded", "failed"])
+        super(PickupItem, self).__init__(outcomes=["succeeded", "failed"])
 
         with self:
             smach.StateMachine.add("INSPECT_FURNITURE",

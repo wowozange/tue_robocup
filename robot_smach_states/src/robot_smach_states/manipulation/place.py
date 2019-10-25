@@ -21,7 +21,7 @@ class PreparePlace(smach.State):
         :param arm: Designator -> arm to place with, so Arm that holds entity_to_place, e.g. via
         ArmHoldingEntityDesignator
         """
-        smach.State.__init__(self, outcomes=['succeeded', 'failed'])
+        super(PreparePlace, self).__init__(outcomes=['succeeded', 'failed'])
 
         # Check types or designator resolve types
         check_type(placement_pose, FrameStamped)
@@ -76,7 +76,7 @@ class Put(smach.State):
         :param arm: Designator -> arm to place with, so Arm that holds entity_to_place, e.g. via
         ArmHoldingEntityDesignator
         """
-        smach.State.__init__(self, outcomes=['succeeded', 'failed'])
+        super(Put, self).__init__(outcomes=['succeeded', 'failed'])
 
         # Check types or designator resolve types
         check_type(item_to_place, Entity)
@@ -210,7 +210,7 @@ class Place(smach.StateMachine):
         :param update_supporting_entity (optional) bool to indicate whether the supporting entity should be updated.
         This can only be used if the supporting entity is supplied, case 2 or 3 mentioned under item_to_place
         """
-        smach.StateMachine.__init__(self, outcomes=['done', 'failed'])
+        super(Place, self).__init__(outcomes=['done', 'failed'])
 
         # Check types or designator resolve types
         assert(item_to_place.resolve_type == Entity or type(item_to_place) == Entity)

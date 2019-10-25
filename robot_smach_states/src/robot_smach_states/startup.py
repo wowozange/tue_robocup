@@ -32,7 +32,7 @@ class StartChallengeRobust(smach.StateMachine):
         :param use_entry_points: (bool) (not yet implemented)
         :param door: (bool) indicates whether to wait for a door to open and whether to 'force-drive' inside
         """
-        smach.StateMachine.__init__(self, outcomes=["Done", "Aborted", "Failed"])
+        super(StartChallengeRobust, self).__init__(outcomes=["Done", "Aborted", "Failed"])
         assert hasattr(robot, "base")
         assert hasattr(robot, "speech")
         if use_entry_points:
@@ -103,7 +103,7 @@ class EnterArena(smach.StateMachine):
             :param initial_pose:
             :param use_entry_points:
             """
-            smach.State.__init__(self, outcomes=["no_goal", "found", "not_found", "all_unreachable"])
+            super(GoToEntryPoint, self).__init__(outcomes=["no_goal", "found", "not_found", "all_unreachable"])
             self.robot = robot
             self.initial_pose = initial_pose
             self.use_entry_points = use_entry_points
@@ -119,7 +119,7 @@ class EnterArena(smach.StateMachine):
         :param initial_pose:
         :param use_entry_points:
         """
-        smach.StateMachine.__init__(self, outcomes=['done'])
+        super(EnterArena, self).__init__(outcomes=['done'])
         self.robot = robot
 
         with self:
@@ -149,7 +149,7 @@ class WaitForDoorOpen(smach.State):
         :param robot: robot object
         :param timeout: timeout for waiting till the door is opened
         """
-        smach.State.__init__(self, outcomes=["open", "closed"])
+        super(WaitForDoorOpen, self).__init__(outcomes=["open", "closed"])
         self._robot = robot
         self.timeout = timeout
         # ToDo Loy: Keeping all of these is quite ugly. Would a ring buffer or collections.deque suffice?
@@ -234,7 +234,7 @@ class WaitForLocalPlanner(smach.State):
         :param timeout: timeout
         :type timeout: (float, int)
         """
-        smach.State.__init__(self, outcomes=["ready", "timeout"])
+        super(WaitForLocalPlanner, self).__init__(outcomes=["ready", "timeout"])
         self._robot = robot
         self._timeout = timeout
 

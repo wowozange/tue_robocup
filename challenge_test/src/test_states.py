@@ -42,7 +42,7 @@ printOk, printError, printWarning = common_knowledge.make_prints("[Challenge Tes
 # OBSELETE! BUT MIGHT BE USEFULL
 # class PointAtOperator(smach.State):
 #     def __init__(self, robot):
-#         smach.State.__init__(self, outcomes=['done'])
+#         super(PointAtOperator, self).__init__(outcomes=['done'])
 #         self.robot = robot
 
 #     def execute(self, robot):
@@ -62,7 +62,7 @@ class AskPersonName(smach.State):
         Ask the person's name, and try to hear one of the names in common_knowledge
     """
     def __init__(self, robot, personNameDes, defaultName = 'Operator'):
-        smach.State.__init__(   self, outcomes=['succeeded', 'failed'])
+        super(AskPersonName, self).__init__(outcomes=['succeeded', 'failed'])
 
         self.robot = robot
         self.personNameDes = personNameDes
@@ -110,7 +110,7 @@ class PickUpRandomObj(smach.State):
         Ask the person's name, and try to hear one of the names in common_knowledge
     """
     def __init__(self, robot, objectsIDsDes):
-        smach.State.__init__(   self, outcomes=['succeeded', 'failed', 'no_objects'])
+        super(PickUpRandomObj, self).__init__(outcomes=['succeeded', 'failed', 'no_objects'])
 
         self.robot = robot
         self.objectsIDsDes = objectsIDsDes
@@ -172,7 +172,7 @@ class RecognizePeople(smach.State):
         Attempt to recognize the peolpe in front of the robot and say their names
     """
     def __init__(self, robot):
-        smach.State.__init__(   self, outcomes=['succeeded', 'failed', 'no_people'])
+        super(RecognizePeople, self).__init__(outcomes=['succeeded', 'failed', 'no_people'])
 
         self.robot = robot
 
@@ -211,11 +211,9 @@ class SelectNextContainer(smach.State):
         Select a new test to be executed, either by a certain order, random or on repeat
     """
     def __init__(self, robot, containerResultDes):
-        smach.State.__init__(   self, outcomes=['go_to_enter_room',
-                                                'go_to_wait_person',
-                                                'go_to_pick_up',
-                                                'go_to_recognize_people',
-                                                'go_to_search_people'])
+        super(SelectNextContainer, self).__init__(self, outcomes=['go_to_enter_room', 'go_to_wait_person',
+                                                                  'go_to_pick_up', 'go_to_recognize_people',
+                                                                  'go_to_search_people'])
 
         self.containerResultDes = containerResultDes
         self.robot = robot

@@ -22,7 +22,7 @@ class ArmToJointConfig(smach.State):
         :param arm_designator: designator that resolves to arm to put in given configuration
         :param configuration: joint configuration to put arm in
         """
-        smach.State.__init__(self, outcomes=['succeeded', 'failed'])
+        super(ArmToJointConfig, self).__init__(outcomes=['succeeded', 'failed'])
 
         self.robot = robot
         check_type(arm_designator, PublicArm)
@@ -47,7 +47,7 @@ class HandOverTo(smach.State):
         :param arm_designator: designator that resolves to arm holding an object
         :param timeout: float time the operation may take
         """
-        smach.State.__init__(self, outcomes=['succeeded', 'failed'])
+        super(HandOverTo, self).__init__(outcomes=['succeeded', 'failed'])
 
         self.robot = robot
         check_type(arm_designator, PublicArm)
@@ -104,7 +104,7 @@ class HandoverFromHuman(smach.StateMachine):
         :param timeout: How long to hold hand over before closing without anything
         :param arm_configuration: Which pose to put arm in when holding hand up for the item.
         """
-        smach.StateMachine.__init__(self, outcomes=['succeeded', 'failed', 'timeout'])
+        super(HandoverFromHuman, self).__init__(outcomes=['succeeded', 'failed', 'timeout'])
 
         check_type(arm_designator, PublicArm)
         if not grabbed_entity_designator and grabbed_entity_label == "":
@@ -140,7 +140,7 @@ class HandoverToHuman(smach.StateMachine):
         :param arm_designator: designator that resolves to arm holding the object
         :param timeout: float amount of time the procedure may take
         """
-        smach.StateMachine.__init__(self, outcomes=['succeeded', 'failed'])
+        super(HandoverToHuman, self).__init__(outcomes=['succeeded', 'failed'])
 
         # A designator can resolve to a different item every time its resolved. We don't want that here, so lock
         check_type(arm_designator, PublicArm)
@@ -194,7 +194,7 @@ class CloseGripperOnHandoverToRobot(smach.State):
                                     (use this ore grabbed_entity_designator)
         :param timeout: float amount of time the procedure may take
         """
-        smach.State.__init__(self, outcomes=['succeeded', 'failed', 'timeout'])
+        super(CloseGripperOnHandoverToRobot, self).__init__(outcomes=['succeeded', 'failed', 'timeout'])
         self.robot = robot
         self.arm_designator = arm_designator
         self.timeout = timeout
@@ -238,7 +238,7 @@ class SetGripper(smach.State):
         :param grab_entity_designator: Designator resolving to the entity to be attached to the gripper
         :param timeout: float amount of time the procedure may take
         """
-        smach.State.__init__(self, outcomes=['succeeded', 'failed'])
+        super(SetGripper, self).__init__(outcomes=['succeeded', 'failed'])
 
         check_type(arm_designator, PublicArm)
         self.arm_designator = arm_designator
@@ -276,7 +276,7 @@ class TorsoToUserPos(smach.State):
         :param torso_pos: float desired position of the torso
         :param time_out: float amount of time the procedure may take
         """
-        smach.State.__init__(self, outcomes=['succeeded', 'failed'])
+        super(TorsoToUserPos, self).__init__(outcomes=['succeeded', 'failed'])
         self.robot = robot
         self.torso_pos = torso_pos
         self.time_out = time_out

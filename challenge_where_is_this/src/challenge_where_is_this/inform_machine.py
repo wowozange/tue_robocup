@@ -54,7 +54,7 @@ class SayWaitDes(smach.StateMachine):
         """ Constructor
         :param robot: robot object
         """
-        smach.StateMachine.__init__(self, outcomes=["succeeded"])
+        super(SayWaitDes, self).__init__(outcomes=["succeeded"])
 
         with self:
             self.text_des = ds.VariableDesignator(resolve_type=str).writeable
@@ -88,7 +88,7 @@ class InformMachine(smach.StateMachine):
         """ Constructor
         :param robot: robot object
         """
-        smach.StateMachine.__init__(self, outcomes=["succeeded", "failed"])
+        super(InformMachine, self).__init__(outcomes=["succeeded", "failed"])
 
         with self:
             self.spec_des = ds.Designator(knowledge.location_grammar)

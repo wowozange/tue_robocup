@@ -68,7 +68,7 @@ class ControlToPose(smach.State):
         :param rate: (float, int) Control rate [Hz]
         the goal_pose
         """
-        smach.State.__init__(self, outcomes=['succeeded', 'failed'])
+        super(ControlToPose, self).__init__(utcomes=['succeeded', 'failed'])
 
         assert all([isinstance(p, (float, int)) for p in control_parameters]), "Control parameters are invalid"
 

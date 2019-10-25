@@ -22,7 +22,7 @@ class VerifyWorldModelInfo(smach.State):
     Check consistency between world model and local knowledge
     """
     def __init__(self, robot):
-        smach.State.__init__(self, outcomes=["failed", "done"])
+        super(VerifyWorldModelInfo, self).__init__(outcomes=["failed", "done"])
         self._robot = robot
 
     def execute(self, userdata):
@@ -49,11 +49,12 @@ class VerifyWorldModelInfo(smach.State):
 
         return "done"
 
+
 class AskWhichRoomToClean(smach.State):
 # Logic in this code is still flawed. No correct repetition.....
 
     def __init__(self, robot, roomw, answerw, cleanup_locationsw):
-        smach.State.__init__(self, outcomes=["failed", "done"])
+        super(AskWhichRoomToClean, self).__init__(outcomes=["failed", "done"])
         self.robot = robot
         self.roomw = roomw
         self.answerw = answerw

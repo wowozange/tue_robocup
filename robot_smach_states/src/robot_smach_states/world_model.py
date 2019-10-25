@@ -74,7 +74,7 @@ class UpdateEntityPose(smach.State):
         :param robot: robot object
         :param entity_designator: EdEntityDesignator indicating the object for which the pose should be updated
         """
-        smach.State.__init__(self, outcomes=["done"])
+        super(UpdateEntityPose, self).__init__(outcomes=["done"])
         self._robot = robot
         self._entity_designator = entity_designator
 
@@ -154,7 +154,7 @@ class SegmentObjects(smach.State):
         :param filter_threshold: Entities whose classification score is lower than this float are ignored
             (i.e. are not added to the segmented_entity_ids_designator)
         """
-        smach.State.__init__(self, outcomes=["done"])
+        super(SegmentObjects, self).__init__(outcomes=["done"])
         self.robot = robot
 
         self.unknown_threshold = unknown_threshold
@@ -242,7 +242,7 @@ class Inspect(smach.StateMachine):
         :param filter_threshold: Entities whose classification score is lower than this float are ignored
             (i.e. are not added to the segmented_entity_ids_designator)
         """
-        smach.StateMachine.__init__(self, outcomes=['done', 'failed'])
+        super(Inspect, self).__init__(outcomes=['done', 'failed'])
 
         if not objectIDsDes:
             objectIDsDes = ds.VariableDesignator([], resolve_type=[ClassificationResult])

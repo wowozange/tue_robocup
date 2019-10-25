@@ -134,7 +134,7 @@ class RandomNavDesignator(Designator):
 class SelectAction(smach.State):
     def __init__(self, outcomes=['continue', 'pause', 'stop']):
         self.outcomes= outcomes
-        smach.State.__init__(self, outcomes=self.outcomes)
+        super(SelectAction, self).__init__(outcomes=self.outcomes)
         self.outcome = 'continue'
 
         self.rate = float(rospy.get_param('~rate', '1.0'))
@@ -159,7 +159,7 @@ class SelectAction(smach.State):
 class RandomNav(smach.StateMachine):
 
     def __init__(self, robot):
-        smach.StateMachine.__init__(self, outcomes=['Done','Aborted'])
+        super(RandomNav, self).__init__(outcomes=['Done','Aborted'])
 
         self.robot = robot
 

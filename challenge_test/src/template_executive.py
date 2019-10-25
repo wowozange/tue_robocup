@@ -29,7 +29,7 @@ printOk, printError, printWarning = common_knowledge.make_prints("[Challenge Tes
 
 class ChallengeTemplate(smach.StateMachine):
     def __init__(self, robot):
-        smach.StateMachine.__init__(self, outcomes=['Done','Aborted'])
+        super(ChallengeTemplate, self).__init__(outcomes=['Done','Aborted'])
 
         with self:
 

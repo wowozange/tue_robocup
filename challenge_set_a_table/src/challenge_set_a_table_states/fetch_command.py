@@ -67,7 +67,7 @@ class HearFetchCommand(smach.State):
         :param time_out: timeout in seconds (not yet used)
         :param task: string with set or clear
         """
-        smach.State.__init__(self, outcomes=["done"])
+        super(HearFetchCommand, self).__init__(outcomes=["done"])
         self.robot = robot
         self.time_out = time_out
         if task not in ["set", "clear"]:
@@ -97,7 +97,7 @@ class GetBreakfastOrder(smach.State):
         :param options: list with strings containing the possible breakfast choices
         :param timeout: timeout in seconds
         """
-        smach.State.__init__(self, outcomes=["done"])
+        super(GetBreakfastOrder, self).__init__(outcomes=["done"])
         self.robot = robot
         self.options = options
         self.grasp_designator1 = grasp_designator1
@@ -188,7 +188,7 @@ class GetBreakfastOrder(smach.State):
 
 class TestFetchCommand(smach.StateMachine):
         def __init__(self, robot):
-                smach.StateMachine.__init__(self, outcomes=['Done', 'Aborted'])
+                super(TestFetchCommand, self).__init__(outcomes=['Done', 'Aborted'])
 
                 with self:
                         smach.StateMachine.add('INITIALIZE',

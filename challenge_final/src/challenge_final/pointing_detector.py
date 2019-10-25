@@ -156,7 +156,7 @@ class PointingDetector(smach.State):
         :param super_type: string indicating the required super type. If the RayTraceResult does not provide an entity
         of the desired super type, the closest entity with that desired supertype will be computed.
         """
-        smach.State.__init__(self, outcomes=["succeeded", "failed"])
+        super(PointingDetector, self).__init__(outcomes=["succeeded", "failed"])
 
         self._robot = robot
         self._designator = designator

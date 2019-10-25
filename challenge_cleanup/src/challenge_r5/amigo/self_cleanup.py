@@ -31,7 +31,7 @@ class dropPoseDesignator(Designator):
 
 class ArmFree(smach.State):
     def __init__(self, robot):
-        smach.State.__init__(self, outcomes=["yes", "no"])
+        super(ArmFree, self).__init__(outcomes=["yes", "no"])
         self._robot = robot
 
     def execute(self, userdata):
@@ -42,7 +42,7 @@ class ArmFree(smach.State):
 
 class ArmOccupied(smach.State):
     def __init__(self, robot):
-        smach.State.__init__(self, outcomes=["yes", "no"])
+        super(ArmOccupied, self).__init__(outcomes=["yes", "no"])
         self._robot = robot
 
     def execute(self, userdata):
@@ -53,7 +53,7 @@ class ArmOccupied(smach.State):
 
 class Speak(smach.State):
     def __init__(self, robot, selected_entity_designator, location_id, segment_area):
-        smach.State.__init__(self, outcomes=["done"])
+        super(Speak, self).__init__(outcomes=["done"])
         self._robot = robot
         self._selected_entity_designator = selected_entity_designator
 
@@ -79,7 +79,7 @@ class Speak(smach.State):
 class SelfCleanup(smach.StateMachine):
     def __init__(self, robot, selected_entity_designator, location_id, segment_area):
 
-        smach.StateMachine.__init__(self, outcomes=['done','failed'])
+        super(SelfCleanup, self).__init__(outcomes=['done','failed'])
 
         place_pose = dropPoseDesignator(robot, 0.6, "drop_pose")
 

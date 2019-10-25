@@ -21,7 +21,7 @@ class CountObjectsOnLocation(smach.State):
         :param threshold: float for classification score. Entities whose classification score is lower are ignored
             (i.e. are not added to the segmented_entity_ids_designator)
         """
-        smach.State.__init__(self, outcomes=['done', 'failed'])
+        super(CountObjectsOnLocation, self).__init__(outcomes=['done', 'failed'])
         self.robot = robot
         self.location = location
         self.segmentation_area = segmentation_area
@@ -69,7 +69,7 @@ class InspectAndCount(smach.StateMachine):
         :param count_designator:  VariableDesignator(resolve_type=int).writeable() that will store the number
             of objects
         """
-        smach.StateMachine.__init__(self, outcomes=['Done', 'Aborted'])
+        super(InspectAndCount, self).__init__(outcomes=['Done', 'Aborted'])
 
         entities = ds.VariableDesignator([], resolve_type=[ClassificationResult])
 

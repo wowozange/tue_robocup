@@ -28,7 +28,7 @@ class TakeOrder(smach.State):
         failed: didn't hear anything or exceeded maximum number of tries
         misunderstood: misunderstood, might try again
         """
-        smach.State.__init__(self, outcomes=['succeeded', 'failed'])
+        super(TakeOrder, self).__init__(outcomes=['succeeded', 'failed'])
 
         self._robot = robot
         self._location = location
@@ -110,7 +110,7 @@ class ReciteOrders(smach.State):
         :param robot: robot object
         :param orders: Python dict with orders
         """
-        smach.State.__init__(self, outcomes=["spoken"])
+        super(ReciteOrders, self).__init__(outcomes=["spoken"])
 
         self._robot = robot
         self._orders = orders
@@ -142,7 +142,7 @@ class ClearOrders(smach.State):
 
         :param orders: Python dict with orders
         """
-        smach.State.__init__(self, outcomes=["succeeded"])
+        super(ClearOrders, self).__init__(outcomes=["succeeded"])
 
         self.orders = orders
 

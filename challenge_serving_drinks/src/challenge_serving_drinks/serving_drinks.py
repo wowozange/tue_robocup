@@ -30,7 +30,7 @@ class ServingDrinks(smach.StateMachine):
         :param robot: robot api object
         """
 
-        smach.StateMachine.__init__(self, outcomes=["succeeded", "failed", "aborted"])
+        super(ServingDrinks, self).__init__(outcomes=["succeeded", "failed", "aborted"])
 
         # Designators
         bar_designator = ds.EdEntityDesignator(robot=robot, id=challenge_knowledge.bar_id, name='bar_des')

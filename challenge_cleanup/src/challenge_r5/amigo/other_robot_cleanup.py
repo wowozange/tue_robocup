@@ -12,7 +12,7 @@ other_robot_name = "x-80sv"
 
 class ContactOtherRobot(smach.State):
     def __init__(self, robot, selected_entity_designator):
-        smach.State.__init__(self, outcomes=["done", "failed"])
+        super(ContactOtherRobot, self).__init__(outcomes=["done", "failed"])
         self._robot = robot
         self._pub = rospy.Publisher("/%s/trigger" % other_robot_name, String, queue_size=1)
         self._selected_entity_designator = selected_entity_designator
@@ -36,7 +36,7 @@ class ContactOtherRobot(smach.State):
 class OtherRobotCleanup(smach.StateMachine):
     def __init__(self, robot, selected_entity_designator, location_id, segment_area):
 
-        smach.StateMachine.__init__(self, outcomes=['done'])
+        super(OtherRobotCleanup, self).__init__(outcomes=['done'])
 
         sentences = ["%s, please clean this object %s the %s" % (other_robot_name, segment_area, location_id),
                      "%s, can you clean the trash %s the %s?" % (other_robot_name, segment_area, location_id),

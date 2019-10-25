@@ -31,7 +31,7 @@ class GetOrder(smach.StateMachine):
         :param name_options: Names from common knowledge
         :param objects: Objects from common knowledge
         """
-        smach.StateMachine.__init__(self, outcomes=["succeeded", "failed", "aborted"])
+        super(GetOrder, self).__init__(outcomes=["succeeded", "failed", "aborted"])
 
         with self:
 

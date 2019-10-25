@@ -53,7 +53,7 @@ containerResultDes = VariableDesignator(0, resolve_type=int)
 
 class EnterRoomContainer(smach.StateMachine):
     def __init__(self, robot):
-        smach.StateMachine.__init__(self, outcomes=['container_success','container_failed'])
+        super(EnterRoomContainer, self).__init__(outcomes=['container_success','container_failed'])
 
         with self:
             smach.StateMachine.add( 'SAY_STARTING_TEST',
@@ -97,7 +97,7 @@ class EnterRoomContainer(smach.StateMachine):
 
 class WaitPersonContainer(smach.StateMachine):
     def __init__(self, robot):
-        smach.StateMachine.__init__(self, outcomes=['container_success','container_failed'])
+        super(WaitPersonContainer, self).__init__(outcomes=['container_success','container_failed'])
 
         with self:
 
@@ -151,7 +151,7 @@ class LearnNameContainer(smach.StateMachine):
             robot.speech.speak( "Sorry but I could not understand your name. I will just call you " + personNameDesLocal.resolve(), block=False)
             return 'spoken'
 
-        smach.StateMachine.__init__(self, outcomes=['container_success','container_failed'])
+        super(LearnNameContainer, self).__init__(outcomes=['container_success','container_failed'])
 
         with self:
 
@@ -214,7 +214,7 @@ class LearnNameContainer(smach.StateMachine):
 class LearnFaceContainer(smach.StateMachine):
     def __init__(self, robot, personNameDesLocal):
 
-        smach.StateMachine.__init__(self, outcomes=['container_success','container_failed'])
+        super(LearnFaceContainer, self).__init__(outcomes=['container_success','container_failed'])
 
         with self:
 
@@ -246,7 +246,7 @@ class LearnFaceContainer(smach.StateMachine):
 class PickUpContainer(smach.StateMachine):
     def __init__(self, robot, objectsIDsDesLocal):
 
-        smach.StateMachine.__init__(self, outcomes=['container_success','container_failed'])
+        super(PickUpContainer, self).__init__(outcomes=['container_success','container_failed'])
 
         with self:
 
@@ -307,7 +307,7 @@ class SearchPeopleContainer(smach.StateMachine):
             robot.speech.speak( "I am searching for " + personNameDesLocal.resolve() + "!", block=False)
             return 'spoken'
 
-        smach.StateMachine.__init__(self, outcomes=['container_success','container_failed'])
+        super(SearchPeopleContainer, self).__init__(outcomes=['container_success','container_failed'])
 
         with self:
 
@@ -339,7 +339,7 @@ class SearchPeopleContainer(smach.StateMachine):
 class RecognizePeopleContainer(smach.StateMachine):
     def __init__(self, robot):
 
-        smach.StateMachine.__init__(self, outcomes=['container_success','container_failed'])
+        super(RecognizePeopleContainer, self).__init__(outcomes=['container_success','container_failed'])
 
         with self:
 
@@ -381,7 +381,7 @@ class RecognizePeopleContainer(smach.StateMachine):
 
 class ChallengeTest(smach.StateMachine):
     def __init__(self, robot):
-        smach.StateMachine.__init__(self, outcomes=['Done','Aborted'])
+        super(ChallengeTest, self).__init__(outcomes=['Done','Aborted'])
 
 
         # - - - - - - - - - - - - - - - - - - - Callback States  - - - - - - - - - - - - - - - - - - -

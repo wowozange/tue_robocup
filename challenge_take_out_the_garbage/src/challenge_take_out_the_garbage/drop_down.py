@@ -46,7 +46,7 @@ class DropDownTrash(smach.StateMachine):
         :param trash_designator: EdEntityDesignator designating the trash
         :param drop_designator: EdEntityDesignator designating the collection zone
         """
-        smach.StateMachine.__init__(self, outcomes=["succeeded", "failed", "aborted"])
+        super(DropDownTrash, self).__init__(outcomes=["succeeded", "failed", "aborted"])
 
         drop_area_pose = dropPoseDesignator(robot, 0.6, "drop_pose")
         arm_designator = ds.OccupiedArmDesignator(robot=robot, arm_properties={})

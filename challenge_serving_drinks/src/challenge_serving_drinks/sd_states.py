@@ -47,7 +47,7 @@ class CheckAvailability(smach.State):
         # Speech grammars
         self._drinks_grammar, self._drinks_target = self._setup_drinks_grammar()
 
-        smach.State.__init__(self, outcomes=["available", "unavailable", "aborted"])
+        super(CheckAvailability, self).__init__(outcomes=["available", "unavailable", "aborted"])
 
     @staticmethod
     def _setup_drinks_grammar():
@@ -143,7 +143,7 @@ class AskDrink(smach.StateMachine):
         :param objects: Objects from common knowledge
         """
 
-        smach.StateMachine.__init__(self, outcomes=["succeeded", "failed", "aborted"])
+        super(AskDrink, self).__init__(outcomes=["succeeded", "failed", "aborted"])
 
         with self:
 
@@ -209,7 +209,7 @@ class AskAvailability(smach.State):
         :param max_tries: (int) maximum number of times the robot asks which drink
         :param max_queries_per_try: (int) maximum number of queries to the HMI server per try
         """
-        smach.State.__init__(self, outcomes=["succeeded", "failed"])
+        super(AskAvailability, self).__init__(outcomes=["succeeded", "failed"])
         self._robot = robot
         self._unavailable_drink_designator = unavailable_drink_designator
         self._objects = objects
@@ -331,7 +331,7 @@ class DetectWaving(smach.State):
         Constructor
         :param robot: robot object
         """
-        smach.State.__init__(self, outcomes=['succeeded', 'aborted'])
+        super(DetectWaving, self).__init__(outcomes=['succeeded', 'aborted'])
         self._robot = robot
         self._caller_id = caller_id
         self._people_sub = rospy.Subscriber(robot.robot_name + '/persons', People, self.people_cb, queue_size=1)

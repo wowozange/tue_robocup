@@ -45,7 +45,7 @@ class IterateDesignator(smach.State):
         >>>
         >>> assert iterator.execute() == 'stop_iteration'
         """
-        smach.State.__init__(self, outcomes=['next', 'stop_iteration'])
+        super(IterateDesignator, self).__init__(outcomes=['next', 'stop_iteration'])
 
         is_writeable(element_des)
 

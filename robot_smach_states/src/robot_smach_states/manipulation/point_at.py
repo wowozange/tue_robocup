@@ -23,7 +23,7 @@ class PointAt(smach.State):
         :param arm: Designator -> arm to place with, so Arm that holds entity_to_place, e.g. via
         ArmHoldingEntityDesignator
         """
-        smach.State.__init__(self, outcomes=['succeeded', 'failed'])
+        super(PointAt, self).__init__(outcomes=['succeeded', 'failed'])
 
         if look_at_designator is None:
             look_at_designator = point_at_designator

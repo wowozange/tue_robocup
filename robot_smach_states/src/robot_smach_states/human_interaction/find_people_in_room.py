@@ -74,7 +74,7 @@ class FindPeople(smach.State):
         robot search
         :param look_steps: (int) (default: 8) How many steps does it take in that range
         """
-        smach.State.__init__(self, outcomes=['found', 'failed'])
+        super(FindPeople, self).__init__(outcomes=['found', 'failed'])
 
         self._robot = robot
 
@@ -386,8 +386,7 @@ class SetPoseFirstFoundPersonToEntity(smach.StateMachine):
         robot search
         :param look_steps: (int) (default: 8) How many steps does it take in that range
         """
-        super(SetPoseFirstFoundPersonToEntity,
-              self).__init__(outcomes=["done", "failed"])
+        super(SetPoseFirstFoundPersonToEntity, self).__init__(outcomes=["done", "failed"])
 
         if not found_person_designator:
             found_person_designator = ds.VariableDesignator(resolve_type=Entity, name='new_person').writeable
@@ -433,7 +432,7 @@ class _DecideNavigateState(smach.State):
         :param waypoint_designator: EdEntityDesignator that should resolve to a waypoint
         :param room_designator: EdEntityDesignator that should resolve to the room in which the waypoint is located
         """
-        smach.State.__init__(self, outcomes=["waypoint", "room", "none"])
+        super(_DecideNavigateState, self).__init__(outcomes=["waypoint", "room", "none"])
         self._robot = robot
         self._waypoint_designator = waypoint_designator
         self._room_designator = room_designator
@@ -469,7 +468,7 @@ class FindPeopleInRoom(smach.StateMachine):
         :param discard_other_labels: (bool) Whether or not to discard faces based on label
         :param found_person_designator: (Designator) A designator that will resolve to the found object
         """
-        smach.StateMachine.__init__(self, outcomes=["found", "not_found"])
+        super(FindPeopleInRoom, self).__init__(outcomes=["found", "not_found"])
 
         waypoint_designator = ds.EntityByIdDesignator(robot=robot, id=room + "_waypoint")
         room_designator = ds.EntityByIdDesignator(robot=robot, id=room)

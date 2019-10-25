@@ -21,7 +21,7 @@ class GetTrashBin(smach.State):
         :param robot: robot object
         :param trashbin: EdEntityDesignator designating the trash bin
         """
-        smach.State.__init__(self, outcomes=["succeeded", "failed"])
+        super(GetTrashBin, self).__init__(outcomes=["succeeded", "failed"])
         self._robot = robot
         self._trashbin = trashbin
 
@@ -60,7 +60,7 @@ class GrabTrash(smach.State):
         :param robot: robot object
         :param arm_designator: arm designator resolving to the arm with which to grab
         """
-        smach.State.__init__(self, outcomes=['succeeded', 'failed'])
+        super(GrabTrash, self).__init__(outcomes=['succeeded', 'failed'])
 
         self._robot = robot
         self._arm_designator = arm_designator
@@ -131,7 +131,7 @@ class HandoverFromHuman(smach.StateMachine):
         :param timeout: How long to hold hand over before closing without anything
         :param arm_configuration: Which pose to put arm in when holding hand up for the item.
         """
-        smach.StateMachine.__init__(self, outcomes=['succeeded','failed','timeout'])
+        super(HandoverFromHuman, self).__init__(outcomes=['succeeded','failed','timeout'])
 
         ds.check_type(arm_designator, PublicArm)
         if not grabbed_entity_designator and grabbed_entity_label == "":
@@ -175,7 +175,7 @@ class PickUpTrash(smach.StateMachine):
         :param trashbin_designator: EdEntityDesignator designating the trashbin
         :param arm_designator: arm designator resolving to the arm with which to grab
         """
-        smach.StateMachine.__init__(self, outcomes=["succeeded", "failed", "aborted"])
+        super(PickUpTrash, self).__init__(outcomes=["succeeded", "failed", "aborted"])
 
         with self:
             smach.StateMachine.add("GO_BIN",
