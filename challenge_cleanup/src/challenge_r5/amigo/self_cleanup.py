@@ -40,6 +40,7 @@ class ArmFree(smach.State):
             return "yes"
         return "no"
 
+
 class ArmOccupied(smach.State):
     def __init__(self, robot):
         super(ArmOccupied, self).__init__(outcomes=["yes", "no"])
@@ -50,6 +51,7 @@ class ArmOccupied(smach.State):
         if d.resolve():
             return "yes"
         return "no"
+
 
 class Speak(smach.State):
     def __init__(self, robot, selected_entity_designator, location_id, segment_area):
@@ -114,9 +116,9 @@ class SelfCleanup(smach.StateMachine):
             smach.StateMachine.add('CHECK_ARM_OCCUPIED', ArmOccupied(robot), transitions={"yes": "PLACE", "no": "done"})
 
             smach.StateMachine.add('PLACE',
-                                   robot_smach_states.Place(robot, 
-                                                            selected_entity_designator, 
-                                                            place_pose, 
+                                   robot_smach_states.Place(robot,
+                                                            selected_entity_designator,
+                                                            place_pose,
                                                             OccupiedArmDesignator(robot.arms,
                                                                                   robot.rightArm,
                                                                                   name="occupied_arm_designator")),

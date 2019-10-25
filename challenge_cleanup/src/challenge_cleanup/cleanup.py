@@ -4,8 +4,6 @@ import rospy
 import smach
 import random
 
-import sys
-
 import hmi
 
 import robot_smach_states
@@ -15,7 +13,6 @@ from clean_inspect import CleanInspect
 from robocup_knowledge import load_knowledge
 challenge_knowledge = load_knowledge('challenge_cleanup')
 
-from robot_skills import robot
 
 class VerifyWorldModelInfo(smach.State):
     """
@@ -103,7 +100,7 @@ class AskWhichRoomToClean(smach.State):
 
             try:
                 # Now: confirm
-#                self.roomw.write(speech_result.sentence)
+                # self.roomw.write(speech_result.sentence)
                 self.robot.speech.speak("I understood that the {} should be cleaned "
                                              "is this correct?".format(speech_result.sentence))
             except:
@@ -113,17 +110,17 @@ class AskWhichRoomToClean(smach.State):
                 speech_result = self.robot.hmi.query(description="Is this correct?", grammar="T[True] -> yes;"
                                                                                             "T[False] -> no",
                                                                                      target="T")
-            except TimeoutException:
+            except hmi.TimeoutException:
                 return "failed"
 
             self.robot.head.cancel_goal()
             self.robot.speech.speak("Ok, I will clean the {}".format(self.roomw.resolve()), block=False)
             self.collect_cleanup_locations()
 
-
             return "done"
 
         nr_of_tries += 1
+
 
 def setup_statemachine(robot):
 
@@ -221,7 +218,6 @@ def setup_statemachine(robot):
                                transitions={"spoken": "Done"})
 
     return sm
-
 
 
 def main():

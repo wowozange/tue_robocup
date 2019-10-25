@@ -206,7 +206,6 @@ class LearnNameContainer(smach.StateMachine):
                                     transitions={   'spoken':'container_failed'})
 
 
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #                                 LEARN_FACE_CONTAINER
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -265,7 +264,6 @@ class PickUpContainer(smach.StateMachine):
                                     transitions={   'arrived'           :   'SEGMENT_OBJECTS',
                                                     'unreachable'       :   'SAY_FAILED_NAV_TO_TABLE',
                                                     'goal_not_defined'  :   'SAY_FAILED_NAV_TO_TABLE'})
-
 
             smach.StateMachine.add( 'SAY_FAILED_NAV_TO_TABLE',
                                     states.Say(robot,"I could not reach the table, but i will try to continue.", block=True),
@@ -330,7 +328,6 @@ class SearchPeopleContainer(smach.StateMachine):
                                     transitions={'spoken':'container_failed'})
 
 
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #                                 RECOGNIZE_PEOPLE_CONTAINER
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -373,8 +370,6 @@ class RecognizePeopleContainer(smach.StateMachine):
                                     transitions={'spoken':'LOOK_AT_OPERATOR'})
 
 
-
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #                             MAIN STATE MACHINE
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -404,24 +399,6 @@ class ChallengeTest(smach.StateMachine):
                 resultDes.write(1)
 
             return 'done'
-
-
-
-
-# def my_cb(ud, x=0, y, z):
-#     ud.xyz = ud.q + x + y + z
-#     return 'foo'
-# ...
-
-
-# with sm:
-#     ...
-#     StateMachine.add('MY_CB', CBState(my_cb,
-#                                       cb_args=[10],
-#                                       cb_kwargs={'z':2,'y':3}),
-#                               {'foo':'OTHER_STATE'})
-
-
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -500,8 +477,8 @@ class ChallengeTest(smach.StateMachine):
                                     transitions={    'spoken':'Done'})
 
 
-
 ############################## MAIN ##############################
+
 
 if __name__ == "__main__":
     rospy.init_node('test_executive')

@@ -14,6 +14,7 @@ from PyKDL import Frame
 
 #ToDo: Location for trash depends on the room chosen: trash_bin (living) or trash_can (kitchen). Not handled yet.
 
+
 class dropPoseDesignator(Designator):
     def __init__(self, robot, drop_height, name):
         super(dropPoseDesignator, self).__init__(resolve_type=FrameStamped, name=name)
@@ -35,6 +36,7 @@ class dropPoseDesignator(Designator):
         frame.p.z(self._drop_height)
 
         return FrameStamped(frame, "/map")
+
 
 class storePlaceDesignator(Designator):
     def __init__(self, robot, name, selected_entity_designator):
@@ -58,6 +60,7 @@ class storePlaceDesignator(Designator):
             rospy.logerr("Could not resolve the selected entity!")
             return None
 
+
 class storeAreaDesignator(Designator):
     def __init__(self, robot, name, selected_entity_designator):
         super(storeAreaDesignator, self).__init__(resolve_type=str, name=name)
@@ -76,6 +79,7 @@ class storeAreaDesignator(Designator):
         else:
             rospy.logerr("Could not resolve the selected entity!")
             return None
+
 
 class DetermineCleanupLocation(smach.State):
     def __init__(self, robot, selected_entity_designator):
@@ -97,6 +101,7 @@ class DetermineCleanupLocation(smach.State):
         else:
             return "trashbin"
 
+
 class ArmFree(smach.State):
     def __init__(self, robot):
         super(ArmFree, self).__init__(outcomes=["yes", "no"])
@@ -108,6 +113,7 @@ class ArmFree(smach.State):
             return "yes"
         return "no"
 
+
 class ArmOccupied(smach.State):
     def __init__(self, robot):
         super(ArmOccupied, self).__init__(outcomes=["yes", "no"])
@@ -118,6 +124,7 @@ class ArmOccupied(smach.State):
         if d.resolve():
             return "yes"
         return "no"
+
 
 class Speak(smach.State):
     def __init__(self, robot, selected_entity_designator, location_id, segment_area):
@@ -211,8 +218,8 @@ class SelfCleanup(smach.StateMachine):
                                                 "failed": "SAY_PLACE_FAILED"})
 
             smach.StateMachine.add('PLACE_IN_TRASH',
-                                   robot_smach_states.Place(robot, 
-                                                            selected_entity_designator, 
+                                   robot_smach_states.Place(robot,
+                                                            selected_entity_designator,
                                                             trash_place_pose,
                                                             OccupiedArmDesignator(robot,
                                                                                   {},

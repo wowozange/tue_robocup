@@ -91,6 +91,7 @@ class ChallengePersonRecognition(smach.StateMachine):
 
             ds.analyse_designators(self, "person_recognition")
 
+
 if __name__ == "__main__":
     rospy.init_node('person_recognition_exec')
 

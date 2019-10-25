@@ -339,8 +339,8 @@ class InspectShelves(smach.State):
 
 # ----------------------------------------------------------------------------------------------------
 
-class InitializeWorldModel(smach.State):
 
+class InitializeWorldModel(smach.State):
     def __init__(self, robot):
         super(InitializeWorldModel, self).__init__(outcomes=['done'])
         self.robot = robot
@@ -395,6 +395,7 @@ class SegmentShelf(smach.State):
         return 'done'
 
 # ----------------------------------------------------------------------------------------------------
+
 
 class ManipRecogSingleItem(smach.StateMachine):
     """The ManipRecogSingleItem state machine (for one object) is:

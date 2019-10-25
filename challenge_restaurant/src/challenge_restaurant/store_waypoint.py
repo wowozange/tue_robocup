@@ -280,6 +280,7 @@ def setup_statemachine(robot):
 
     return sm
 
+
 if __name__ == '__main__':
     rospy.init_node('automatic_side_detection')
 

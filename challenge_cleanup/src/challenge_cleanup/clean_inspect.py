@@ -6,6 +6,7 @@ from robot_smach_states.util.designators import EdEntityDesignator, VariableDesi
 from handle_detected_entities import HandleDetectedEntities
 from robot_skills.classification_result import ClassificationResult
 
+
 class ValueByKeyDesignator(Designator):
     def __init__(self, container, key, resolve_type, name=None):
         """

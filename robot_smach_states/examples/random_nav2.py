@@ -217,8 +217,7 @@ class RandomNav(smach.StateMachine):
                                     transitions={   'target_determined':'DRIVE',
                                                     'no_targets_available':'SELECT_ACTION'})
 
-            smach.StateMachine.add( 'DRIVE',
-                                    states.NavigateToObserve(robot, self.random_nav_designator),
+            smach.StateMachine.add('DRIVE', states.NavigateToObserve(robot, self.random_nav_designator),
                                     transitions={   "arrived":"SAY_SUCCEEDED",
                                                     "unreachable":'SAY_UNREACHABLE',
                                                     "goal_not_defined":'SELECT_ACTION'})

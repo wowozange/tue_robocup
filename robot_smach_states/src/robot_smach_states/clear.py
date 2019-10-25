@@ -11,6 +11,7 @@ import robot_smach_states as states
 from robot_smach_states.util.designators import check_type
 from robot_smach_states.util.designators import VariableDesignator, EdEntityDesignator, EntityByIdDesignator, UnoccupiedArmDesignator, EmptySpotDesignator
 
+
 class SelectEntity(smach.State):
     def __init__(self, robot, entitity_classifications_designator, selected_entity_designator):
         super(SelectEntity, self).__init__(outcomes=["entity_selected", "no_entities_left"])

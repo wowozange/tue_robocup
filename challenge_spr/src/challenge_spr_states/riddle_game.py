@@ -130,7 +130,7 @@ def answer(robot, res, crowd_data):
 
             func = assignments.get(action['action'])
             if func is not None:
-                ans = func(action)              
+                ans = func(action)
 
         except Exception as e:
             rospy.logerr(e)
@@ -209,6 +209,7 @@ def answer_count_placement(action):
     else:
         return 'I should count but I dont know that object %s' % entity
 
+
 def answer_find_objects(action):
     entity = action['entity']
     objects = [obj for obj in common_knowledge.objects if obj['name'] == entity]
@@ -259,7 +260,7 @@ def answer_compare_objects_sizes(action):
         elif vol_a < vol_b:
             return 'The object %s is smaller than the object %s' % (entity_a, entity_b)
         else:
-        	return 'The objects %s and %s have exactly the same volume' % (entity_a, entity_b)
+            return 'The objects %s and %s have exactly the same volume' % (entity_a, entity_b)
     else:
         return 'I dont know these objects'
 
@@ -339,6 +340,7 @@ class TestRiddleGame(smach.StateMachine):
                                    HearAndAnswerQuestions(robot, num_questions=3),
                                    transitions={'done': 'Done'},
                                    remapping={'crowd_data':'crowd_data'})
+
 
 if __name__ == "__main__":
     rospy.init_node('speech_person_recognition_exec')

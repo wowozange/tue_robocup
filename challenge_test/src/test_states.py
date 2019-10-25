@@ -242,4 +242,3 @@ class SelectNextContainer(smach.State):
 
         printOk("Jumping to next container: '{}'".format(self.nextContainer))
         return self.nextContainer
-

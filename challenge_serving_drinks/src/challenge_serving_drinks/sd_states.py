@@ -49,8 +49,7 @@ class CheckAvailability(smach.State):
 
         super(CheckAvailability, self).__init__(outcomes=["available", "unavailable", "aborted"])
 
-    @staticmethod
-    def _setup_drinks_grammar():
+    def _setup_drinks_grammar(self):
         """
         Sets up the grammar to ask which drink someone would like based on the objects in the knowlegde.
         :return: tuple(str, str) grammar and target
@@ -219,8 +218,7 @@ class AskAvailability(smach.State):
         # Speech grammars
         self._drinks_grammar, self._drinks_target = self._setup_drinks_grammar()
 
-    @staticmethod
-    def _setup_drinks_grammar():
+    def _setup_drinks_grammar(self):
         """ Sets up the grammar to ask which drink is unavailable based on the objects in the knowlegde.
 
         :return: tuple(str, str) grammar and target

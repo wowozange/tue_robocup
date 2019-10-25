@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import math
+from __future__ import print_function
 import rospy
 import smach
 import datetime
@@ -14,9 +14,9 @@ from robot_skills.util.entity import Entity
 
 challenge_knowledge = load_knowledge('challenge_help_me_carry')
 
-print "=============================================="
-print "==         CHALLENGE HELP ME CARRY          =="
-print "=============================================="
+print("==============================================")
+print("==         CHALLENGE HELP ME CARRY          ==")
+print("==============================================")
 
 
 class ChallengeHelpMeCarry(smach.StateMachine):

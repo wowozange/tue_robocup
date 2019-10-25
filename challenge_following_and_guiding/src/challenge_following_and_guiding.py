@@ -17,6 +17,7 @@ from robot_skills.util import transformations, msg_constructors
 from robocup_knowledge import load_knowledge
 knowledge = load_knowledge("challenge_following_and_guiding")
 
+
 class StoreRobocupArena(smach.State):
     def __init__(self, robot):
         super(StoreRobocupArena, self).__init__(outcomes=["done"])
@@ -28,6 +29,7 @@ class StoreRobocupArena(smach.State):
 
         return "done"
 
+
 class HeadStraight(smach.State):
     def __init__(self, robot):
         super(HeadStraight, self).__init__(outcomes=["done"])
@@ -37,6 +39,7 @@ class HeadStraight(smach.State):
         self._robot.head.look_at_standing_person()
         return "done"
 
+
 class HeadCancel(smach.State):
     def __init__(self, robot):
         super(HeadCancel, self).__init__(outcomes=["done"])
@@ -45,6 +48,7 @@ class HeadCancel(smach.State):
     def execute(self, userdata=None):
         self._robot.head.close()
         return "done"
+
 
 class WaitForOperatorCommand(smach.State):
     def __init__(self, robot):
@@ -76,6 +80,7 @@ class WaitForOperatorCommand(smach.State):
         self._robot.head.cancel_goal()
         return "follow"
 
+
 def setup_statemachine(robot):
 
     sm = smach.StateMachine(outcomes=['done', 'aborted'])
@@ -103,6 +108,7 @@ def setup_statemachine(robot):
         smach.StateMachine.add('SAY_BACK', states.Say(robot, "We are back in the robocup arena!", look_at_standing_person=True), transitions={ 'spoken' :'done'})
 
         return sm
+
 
 ############################## initializing program ######################
 if __name__ == '__main__':

@@ -10,6 +10,7 @@ challenge_knowledge = load_knowledge('r5cop_demo')
 
 other_robot_name = "x-80sv"
 
+
 class ContactOtherRobot(smach.State):
     def __init__(self, robot, selected_entity_designator):
         super(ContactOtherRobot, self).__init__(outcomes=["done", "failed"])

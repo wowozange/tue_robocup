@@ -204,11 +204,10 @@ class LearnNameContainer(smach.StateMachine):
                                     smach.CBState(sayCouldNotLearnNameCB),
                                     transitions={   'spoken':'container_failed'})
 
-
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #                                 LEARN_FACE_CONTAINER
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 
 class LearnFaceContainer(smach.StateMachine):
     def __init__(self, robot, personNameDesLocal):
@@ -264,7 +263,6 @@ class PickUpContainer(smach.StateMachine):
                                     transitions={   'arrived'           :   'SEGMENT_OBJECTS',
                                                     'unreachable'       :   'SAY_FAILED_NAV_TO_TABLE',
                                                     'goal_not_defined'  :   'SAY_FAILED_NAV_TO_TABLE'})
-
 
             smach.StateMachine.add( 'SAY_FAILED_NAV_TO_TABLE',
                                     states.Say(robot,"I could not reach the table, but i will try to continue.", block=True),
@@ -329,7 +327,6 @@ class SearchPeopleContainer(smach.StateMachine):
                                     transitions={'spoken':'container_success'})
 
 
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #                                 RECOGNIZE_PEOPLE_CONTAINER
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -370,8 +367,6 @@ class RecognizePeopleContainer(smach.StateMachine):
             smach.StateMachine.add( 'SAY_NO_PEOPLE',
                                     states.Say(robot,"I don see anyone in front of me.", block=False),
                                     transitions={'spoken':'LOOK_AT_OPERATOR'})
-
-
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -463,8 +458,8 @@ class ChallengeTest(smach.StateMachine):
                                     transitions={    'spoken':'Done'})
 
 
-
 ############################## MAIN ##############################
+
 
 if __name__ == "__main__":
     rospy.init_node('test_executive')

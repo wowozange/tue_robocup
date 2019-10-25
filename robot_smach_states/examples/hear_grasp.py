@@ -66,6 +66,7 @@ def setup_statemachine(robot):
 
     return sm
 
+
 if __name__ == "__main__":
     rospy.init_node('amigo_final_rwc2015_exec')
     startup(setup_statemachine)

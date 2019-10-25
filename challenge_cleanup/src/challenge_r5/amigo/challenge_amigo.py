@@ -10,6 +10,7 @@ from clean_inspect import CleanInspect
 from robocup_knowledge import load_knowledge
 challenge_knowledge = load_knowledge('r5cop_demo')
 
+
 class VerifyWorldModelInfo(smach.State):
     def __init__(self, robot):
         super(VerifyWorldModelInfo, self).__init__(outcomes=["failed", "done"])
@@ -83,6 +84,7 @@ def setup_statemachine(robot):
                                                 place["segment_areas"], challenge_knowledge.known_types),
                                    transitions={"done": "INSPECT_%d" % next_i})
     return sm
+
 
 if __name__ == '__main__':
     rospy.init_node('r5cop_demo_amigo')

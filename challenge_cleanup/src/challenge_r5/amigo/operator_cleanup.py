@@ -11,7 +11,7 @@ import cv2
 from timeout import Timeout
 
 
-def _get_cropped_image_from_info(info):        
+def _get_cropped_image_from_info(info):
 
     if len(info.measurement_image_unmasked) == 0:
         rospy.logerr("Received empty image from ED. This should not happen")
@@ -133,13 +133,14 @@ class OperatorCleanup(smach.StateMachine):
                                    transitions={"cleanup": "SAY_CLEANUP", "no_cleanup": "SAY_NO_CLEANUP"})
 
             smach.StateMachine.add('SAY_CLEANUP',
-                                robot_smach_states.Say(robot, ["Ok, I will cleanup the object",
-                                                                "That's ok!",
-                                                                "As you wish"], block=True),
-                                transitions={"spoken": "cleanup"})
+                                   robot_smach_states.Say(robot, ["Ok, I will cleanup the object",
+                                                                  "That's ok!",
+                                                                  "As you wish"], block=True),
+                                   transitions={"spoken": "cleanup"})
 
             smach.StateMachine.add('SAY_NO_CLEANUP',
-                                robot_smach_states.Say(robot, ["Ok, I will leave the object here",
-                                                                "That's ok! I will continue",
-                                                                "Now I know that this object is not trash"], block=True),
-                                transitions={"spoken": "no_cleanup"})
+                                   robot_smach_states.Say(robot, ["Ok, I will leave the object here",
+                                                                  "That's ok! I will continue",
+                                                                  "Now I know that this object is not trash"],
+                                                          block=True),
+                                   transitions={"spoken": "no_cleanup"})

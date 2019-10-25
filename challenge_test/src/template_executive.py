@@ -61,5 +61,4 @@ class ChallengeTemplate(smach.StateMachine):
 if __name__ == "__main__":
     rospy.init_node('template_executive')
 
-
     startup(ChallengeTemplate, challenge_name="template")

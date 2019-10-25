@@ -1,6 +1,7 @@
 import rospy
 import smach
 
+
 class ForceDrive(smach.State):
     """ Force drives... """
     def __init__(self, robot, vx, vy, vth, duration):
@@ -22,7 +23,6 @@ class ForceDrive(smach.State):
         """ Executes the state """
         self._robot.base.force_drive(self._vx, self._vy, self._vth, self._duration)
         return 'done'
-
 
 
 class ForceRotate(smach.State):

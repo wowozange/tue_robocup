@@ -100,6 +100,7 @@ class StoreCarWaypoint(smach.State):
         else:
             return "abort"
 
+
 class TurnToReplan(smach.State):
     """
     Turn 180 degrees to attempt to find a new (reachable) plan

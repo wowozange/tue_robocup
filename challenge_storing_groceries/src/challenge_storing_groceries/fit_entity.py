@@ -2,6 +2,7 @@ import rospy
 import smach
 from ed_robocup.srv import FitEntityInImage, FitEntityInImageRequest
 
+
 class FitEntity(smach.State):
     """ Fits an entity """
 

@@ -30,7 +30,7 @@ INITIAL_TURNING_DELAY = 1.5     # seconds
 ##############################################################################
 
 class HearTurnAndAnswerQuestions(smach.State):
-    '''
+    """
     Robot hears a question, turn and then answers (bluff game in SPR challenge).
     If the question is not answered, robot asks the operator to repeat the question and tries again, without turning.
 
@@ -41,7 +41,7 @@ class HearTurnAndAnswerQuestions(smach.State):
 
     Outputs:
         done: answered all questions
-    '''
+    """
     def __init__(self, robot, num_questions=1, num_operators=5, hear_time=DEFAULT_HEAR_TIME):
         super(HearTurnAndAnswerQuestions, self).__init__(outcomes=["done"], input_keys=['crowd_data'])
         self.robot = robot
@@ -138,6 +138,7 @@ class TestBluffGame(smach.StateMachine):
                                    HearTurnAndAnswerQuestions(robot, num_questions=3),
                                    transitions={'done': 'Done'},
                                    remapping={'crowd_data':'crowd_data'})
+
 
 if __name__ == "__main__":
     rospy.init_node('speech_person_recognition_exec')

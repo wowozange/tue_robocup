@@ -8,6 +8,7 @@ import robot_skills.util.kdl_conversions as kdl
 from operator_cleanup import OperatorCleanup
 from self_cleanup import SelfCleanup
 
+
 def _loginfo_color(text):
     rospy.loginfo('\033[94m' + text + '\033[0m')
 

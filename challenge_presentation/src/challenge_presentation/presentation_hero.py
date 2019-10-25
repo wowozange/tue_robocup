@@ -12,6 +12,7 @@ from robot_smach_states.util.startup import startup
 from robot_skills import arms
 from robot_skills.util.kdl_conversions import VectorStamped
 
+
 class English(object):
     HI_MY_NAME_IS = "Hello, my name is Hero"
     IM_A_SERVICE_ROBOT = "I am one of the service robots of the Eindhoven University of Technology"
@@ -32,6 +33,7 @@ class English(object):
     LRF_LOCS2 = "Look it's right there"
     MICROPHONE = "Finally, I have a microphone on my head so that I can hear what you are saying"
     END_OF_INTRO = "Thank you for your attention, I hope you enjoyed my presentation and have a nice day."
+
 
 class Dutch(object):
     HI_MY_NAME_IS = "Hallo, mijn naam is Hero"
@@ -162,7 +164,6 @@ class Presentation(smach.State):
                                      voice=self.voice, block=True))
         function_list.append(partial(self.arm.reset))
 
-
         # Microphone
         function_list.append(partial(self.robot.speech.speak, self.trans.MICROPHONE, language=self.language,
                                      voice=self.voice, block=True))
@@ -215,6 +216,7 @@ def setup_statemachine(robot):
                 smach.StateMachine.add("PRESENT", Presentation(robot=robot, language="en"),
                                        transitions={"done": "done", "preempted": "preempted"})
                 return sm
+
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:

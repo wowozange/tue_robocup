@@ -11,7 +11,7 @@ import cv2
 from timeout import Timeout
 
 
-def _get_cropped_image_from_info(info):        
+def _get_cropped_image_from_info(info):
 
     if len(info.measurement_image_unmasked) == 0:
         rospy.logerr("Received empty image from ED. This should not happen")

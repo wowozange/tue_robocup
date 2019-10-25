@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import roslib;
+from __future__ import print_function
 import rospy
 import smach
 import sys
@@ -13,9 +13,9 @@ import robot_smach_states as states
 from robocup_knowledge import load_knowledge
 challenge_knowledge = load_knowledge('challenge_navigation')
 
-print "=============================================="
-print "==           CHALLENGE NAVIGATION           =="
-print "=============================================="
+print("==============================================")
+print("==           CHALLENGE NAVIGATION           ==")
+print("==============================================")
 
 
 class checkTimeOut(smach.State):
@@ -62,7 +62,7 @@ class Turn(smach.State):
         self.robot.head.close()
 
         vth = 1.0
-        print "Turning %f radians with force drive" % self.radians
+        print("Turning %f radians with force drive" % self.radians)
         self.robot.base.force_drive(0, 0, vth, self.radians / vth)
 
         return "turned"
@@ -89,8 +89,8 @@ class DetermineDoor(smach.State):
         while True:
             plan1 = self._robot.base.global_planner.getPlan(door_1_constraint)
             plan2 = self._robot.base.global_planner.getPlan(door_2_constraint)
-            print "Plan 1 length: %i" % len(plan1)
-            print "Plan 2 length: %i" % len(plan2)
+            print("Plan 1 length: %i" % len(plan1))
+            print("Plan 2 length: %i" % len(plan2))
             if len(plan1) < 3:
                 self._door_id_designator.writeable.write(challenge_knowledge.target_door_1)
                 return "door_found"
@@ -102,6 +102,7 @@ class DetermineDoor(smach.State):
                 return 'preempted'
 
             time.sleep(1)
+
 
 class SelectWaypoints(smach.State):
     def __init__(self, door_id_designator, wp_1_des, wp_2_des):
@@ -158,14 +159,14 @@ class DetermineObject(smach.State):
 
         block_is_person = False
         for person in persons:
-#            pose_base_link = self._robot.tf_listener.transformPose(target_frame=self._robot.robot_name+'/base_link',
-#                                                                   pose=person.pose)
-#
-#            x = pose_base_link.pose.position.x
-#            y = pose_base_link.pose.position.y
+           # pose_base_link = self._robot.tf_listener.transformPose(target_frame=self._robot.robot_name+'/base_link',
+           #                                                        pose=person.pose)
 
-#            r = self.obstacle_radius  # Distance from the robot's base link in the x-direction
-#            if (x - r)*(x - r) + y*y < r*r:
+           # x = pose_base_link.pose.position.x
+           # y = pose_base_link.pose.position.y
+
+           # r = self.obstacle_radius  # Distance from the robot's base link in the x-direction
+           # if (x - r)*(x - r) + y*y < r*r:
             block_is_person = True
             break
 
@@ -189,9 +190,10 @@ class DetermineObject(smach.State):
 
         return "done"
 
+
 def setup_statemachine(robot):
 
-    sm = smach.StateMachine(outcomes=['Done','Aborted'])
+    sm = smach.StateMachine(outcomes=['Done', 'Aborted'])
 
     with sm:
 
@@ -362,7 +364,6 @@ def setup_statemachine(robot):
         #                                                       Follow waiter
         #
         ######################################################################################################################################################
-
 
         smach.StateMachine.add( 'TURN', Turn(robot, challenge_knowledge.rotation), transitions={ 'turned'   :   'SAY_STAND_IN_FRONT'})
         smach.StateMachine.add( 'SAY_STAND_IN_FRONT', states.Say(robot, "Please stand in front of me!", block=True, look_at_standing_person=True), transitions={ 'spoken' : 'FOLLOW_WITH_DOOR_CHECK'})
@@ -578,7 +579,6 @@ def setup_statemachine(robot):
         smach.StateMachine.add('AT_END',
                                 states.Say(robot, "Goodbye"),
                                 transitions={   'spoken'            :   'Done'})
-
 
 
     analyse_designators(sm, "navigation")
