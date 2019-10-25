@@ -151,7 +151,7 @@ class WaitForClickedCustomer(smach.State):
         rospy.loginfo("Recieved a point:\n{}".format(point_stamped))
         self._point = point_stamped
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         self._robot.speech.speak("I'm waiting for a customer")
         rospy.loginfo("You can click in rviz")
 
@@ -177,7 +177,7 @@ class AskTakeTheOrder(smach.State):
 
         self.robot = robot
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         cgrammar = """
         C['yes'] -> amigo take the order
         C['wait'] -> amigo wait

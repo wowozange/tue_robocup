@@ -22,7 +22,7 @@ class VerifyWorldModelInfo(smach.State):
         super(VerifyWorldModelInfo, self).__init__(outcomes=["failed", "done"])
         self._robot = robot
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
     # Look for trash units; can be in living_room and kitchen.
     # THIS IS ARENA DEPENDANT!! (Should be handled in a different way?)
     # There should be an 'underscore_rule' : trash_bin or trashbin???
@@ -67,7 +67,7 @@ class AskWhichRoomToClean(smach.State):
         rospy.loginfo("Cleaning locations: {}".format(self.cleanup_locationsw.resolve()))
         return
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         max_tries = 5
         nr_of_tries = 0
         count = 0

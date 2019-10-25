@@ -74,7 +74,7 @@ class HearFetchCommand(smach.State):
             rospy.logerr("You either have to supply the set or clear task")
         self.task = task
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
 
         self.robot.head.look_at_standing_person()
 
@@ -120,7 +120,7 @@ class GetBreakfastOrder(smach.State):
         print self.grammar
         self.timeout = timeout
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
 
         olist = self.options.keys()
         options_sentence = "{} and {}".format(olist[-2], olist[-1])

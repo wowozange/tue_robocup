@@ -60,7 +60,7 @@ class OperatorFeedback(smach.State):
         timeout_function = Timeout(self._request, timeout)
         return timeout_function(img_msg)
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         e = self._selected_entity_designator.resolve()
 
         # If we have cached it, clean it up

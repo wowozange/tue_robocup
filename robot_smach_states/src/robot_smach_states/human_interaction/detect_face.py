@@ -20,7 +20,7 @@ class DetectFace(smach.State):
         super(DetectFace, self).__init__(outcomes=['succeeded', 'failed'])
         self._robot = robot
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         # Acquire the image and detect the faces in it
         self._robot.head.look_at_standing_person()
         rospy.sleep(1.0)

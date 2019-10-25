@@ -12,7 +12,7 @@ class SSLLookatAndRotate(smach.State):
         super(SSLLookatAndRotate, self).__init__(outcomes=["done"])
         self._robot = robot
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         yaw = self._robot.ssl.get_last_yaw(1.0)
         look_distance = 2.0
         height = 1.7

@@ -34,7 +34,7 @@ class ArmFree(smach.State):
         super(ArmFree, self).__init__(outcomes=["yes", "no"])
         self._robot = robot
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         d = UnoccupiedArmDesignator(self._robot.arms, self._robot.rightArm, name="empty_arm_designator2")
         if d.resolve():
             return "yes"
@@ -46,7 +46,7 @@ class ArmOccupied(smach.State):
         super(ArmOccupied, self).__init__(outcomes=["yes", "no"])
         self._robot = robot
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         d = OccupiedArmDesignator(self._robot.arms, self._robot.rightArm, name="empty_arm_designator2")
         if d.resolve():
             return "yes"
@@ -68,7 +68,7 @@ class Speak(smach.State):
             "Removing the %s " + object_description
         ]
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         e = self._selected_entity_designator.resolve()
 
         e_type = random.choice(["item", "object", "trash"])

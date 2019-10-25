@@ -69,7 +69,7 @@ class ControlToPose(State):
         self._cmd_vel_publisher = rospy.Publisher("/" + self.robot.robot_name + "/base/references", Twist, queue_size=1)
         rospy.sleep(0.5)
 
-    def execute(self, ud):
+    def execute(self, ud=None):
         if self._goal_reached(*self._get_target_delta_in_robot_frame(self.goal_pose)):
             rospy.loginfo("We are already there")
             return
@@ -110,14 +110,14 @@ class OpenDoor(StateMachine):
         StateMachine.__init__(self, outcomes=['succeeded', 'failed'])
 
         @cb_interface(outcomes=['done'])
-        def _pre_grab_handle(ud):
+        def _pre_grab_handle(ud=None):
             robot.rightArm.send_gripper_goal("open", timeout=0)
             robot.rightArm._send_joint_trajectory([[0,0.7,0,1.3,1.57,0,0.4]], timeout=rospy.Duration(0))
             robot.rightArm.wait_for_motion_done()
             return 'done'
 
         @cb_interface(outcomes=['done'])
-        def _align_with_door(ud):
+        def _align_with_door(ud=None):
             goal_pose = PoseStamped()
             goal_pose.header.stamp = rospy.Time.now()
             goal_pose.header.frame_id = door_id
@@ -128,13 +128,13 @@ class OpenDoor(StateMachine):
             return 'done'
 
         @cb_interface(outcomes=['done'])
-        def _grab_handle(ud):
+        def _grab_handle(ud=None):
             robot.rightArm.send_gripper_goal("close")
             robot.rightArm.wait_for_motion_done()
             return 'done'
 
         @cb_interface(outcomes=['done'])
-        def _drive_to_open_door(ud):
+        def _drive_to_open_door(ud=None):
             # Open the door 1
             goal_pose = PoseStamped()
             goal_pose.header.stamp = rospy.Time.now()
@@ -156,7 +156,7 @@ class OpenDoor(StateMachine):
             return 'done'
 
         @cb_interface(outcomes=['done'])
-        def _retract_arm(ud):
+        def _retract_arm(ud=None):
             robot.rightArm.send_gripper_goal("open")
             robot.rightArm.wait_for_motion_done()
 

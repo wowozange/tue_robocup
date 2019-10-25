@@ -49,7 +49,7 @@ class Track(smach.State):
         self._buffer = _buffer
         random.seed()
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         """ A concurrent state in which the breadcrumbs, that are made in the other concurrent state, are followed.
 
 

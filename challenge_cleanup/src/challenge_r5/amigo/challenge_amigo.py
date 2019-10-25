@@ -16,7 +16,7 @@ class VerifyWorldModelInfo(smach.State):
         super(VerifyWorldModelInfo, self).__init__(outcomes=["failed", "done"])
         self._robot = robot
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
 
         ids = [e.id for e in self._robot.ed.get_entities()]
         if "trashbin" not in ids:

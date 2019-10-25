@@ -49,7 +49,7 @@ class HearTurnAndAnswerQuestions(smach.State):
         self.num_operators = num_operators
         self.hear_time = hear_time
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         crowd_data = userdata.crowd_data
 
         self.robot.head.look_at_standing_person()

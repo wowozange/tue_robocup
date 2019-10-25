@@ -284,7 +284,7 @@ class WaitForOperator(smach.State):
         self._distance = distance
         self._radius = radius
 
-    def execute(self, ud):
+    def execute(self, ud=None):
 
         self._robot.speech.speak("It seems that we have lost each other. Please stand one meter behind me.")
 

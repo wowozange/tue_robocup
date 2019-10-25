@@ -26,7 +26,7 @@ class TrackFace(smach.State):
         self._stop_requested = False
         self._angle = 0.0
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         return self._execute()
         result = None
         try:

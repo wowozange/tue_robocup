@@ -198,7 +198,7 @@ class CheckVolumeEmpty(smach.StateMachine):
                                                   "failed": "failed"})
 
             @smach.cb_interface(outcomes=['empty', 'occupied'])
-            def check_occupied(userdata):
+            def check_occupied(userdata=None):
                 seen_entities = seen_entities_des.resolve()
                 if seen_entities:
                     return 'occupied'

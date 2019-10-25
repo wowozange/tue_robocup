@@ -18,7 +18,7 @@ class CustomPlace(StateMachine):
         arm = Designator(robot.leftArm)
 
         @cb_interface(outcomes=['done'])
-        def pre_place_pose(ud):
+        def pre_place_pose(ud=None):
             robot.torso.high()
 
             goal_pose = PoseStamped()
@@ -49,21 +49,21 @@ class CustomPlace(StateMachine):
             return 'done'
 
         @cb_interface(outcomes=['done'])
-        def place_pose(ud):
+        def place_pose(ud=None):
             robot.torso._send_goal([0.35])
             robot.torso.wait_for_motion_done()
             rospy.sleep(1.0)
             return 'done'
 
         @cb_interface(outcomes=['done'])
-        def open_gripper(ud):
+        def open_gripper(ud=None):
             arm.resolve().send_gripper_goal("open", timeout=0)
             rospy.sleep(3.0)
             robot.speech.speak("This is where I usually place my cup")
             return 'done'
 
         @cb_interface(outcomes=['done'])
-        def move_away(ud):
+        def move_away(ud=None):
             robot.torso.high()
             robot.torso.wait_for_motion_done()
 
@@ -82,7 +82,7 @@ class CustomPlace(StateMachine):
             return 'done'
 
         @cb_interface(outcomes=['done'])
-        def reset_arms(ud):
+        def reset_arms(ud=None):
             robot.torso.reset()
             arm.resolve().reset()
             robot.torso.wait_for_motion_done()

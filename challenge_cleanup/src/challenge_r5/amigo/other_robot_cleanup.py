@@ -18,7 +18,7 @@ class ContactOtherRobot(smach.State):
         self._pub = rospy.Publisher("/%s/trigger" % other_robot_name, String, queue_size=1)
         self._selected_entity_designator = selected_entity_designator
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
 
         e = self._selected_entity_designator.resolve()
 

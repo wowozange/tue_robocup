@@ -87,7 +87,7 @@ class DetermineCleanupLocation(smach.State):
         self._robot = robot
         self._selected_entity_designator = selected_entity_designator
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         selected_entity = self._selected_entity_designator.resolve()
 
         if not selected_entity:
@@ -107,7 +107,7 @@ class ArmFree(smach.State):
         super(ArmFree, self).__init__(outcomes=["yes", "no"])
         self._robot = robot
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         d = UnoccupiedArmDesignator(self._robot, {}, name="empty_arm_designator2")
         if d.resolve():
             return "yes"
@@ -119,7 +119,7 @@ class ArmOccupied(smach.State):
         super(ArmOccupied, self).__init__(outcomes=["yes", "no"])
         self._robot = robot
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         d = OccupiedArmDesignator(self._robot, {}, name="empty_arm_designator2")
         if d.resolve():
             return "yes"
@@ -141,7 +141,7 @@ class Speak(smach.State):
             "Removing the %s " + object_description
         ]
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         e = self._selected_entity_designator.resolve()
 
         e_type = random.choice(["item", "object", "trash"])

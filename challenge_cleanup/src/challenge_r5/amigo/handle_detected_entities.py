@@ -20,7 +20,7 @@ class SelectEntity(smach.State):
         self._entity_classifications_designator = entitity_classifications_designator
         self._selected_entity_designator = selected_entity_designator
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
 
         # Try to pop item from entities_ids_designator
         try:
@@ -62,7 +62,7 @@ class DetermineAction(smach.State):
 
         return action
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
 
         selected_entity = self._selected_entity_designator.resolve()
 

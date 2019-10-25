@@ -220,7 +220,7 @@ class SelectNextContainer(smach.State):
         self.nextContainer = ""
         self.statusLog = {stateName:[0, 0] for stateName in self.get_registered_outcomes()}
 
-    def execute(self, userdata):
+    def execute(self, userdata=None):
         printOk("SelectNextContainer")
 
         # skip if there is no nextContainer (first run)

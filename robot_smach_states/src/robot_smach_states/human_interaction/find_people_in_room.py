@@ -437,7 +437,7 @@ class _DecideNavigateState(smach.State):
         self._waypoint_designator = waypoint_designator
         self._room_designator = room_designator
 
-    def execute(self, ud):
+    def execute(self, ud=None):
 
         # First: see if the waypoint exists
         entity = self._waypoint_designator.resolve()
