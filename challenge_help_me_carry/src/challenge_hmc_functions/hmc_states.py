@@ -113,7 +113,8 @@ class TurnToReplan(smach.State):
         robot_frame = self._robot.base.get_location().frame
         robot_pose = robot_frame.p
         r, p, y = robot_frame.M.GetRPY()
-        states.NavigateToPose(self._robot, robot_pose.position.x, robot_pose.position.y, y+math.pi)
+        states.NavigateToPose(self._robot, robot_pose.position.x, robot_pose.position.y, y+math.pi).execute()
+
 
 class DropBagOnGround(smach.StateMachine):
     """
