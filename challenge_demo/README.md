@@ -23,3 +23,4 @@ Responsible: Matthijs
 - Place (object to a location)
 - Bring (object to the operator)
 - Say (robot name, team name, day of the month, etc.)
+Bla4
