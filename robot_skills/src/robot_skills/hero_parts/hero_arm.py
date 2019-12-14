@@ -1,4 +1,8 @@
+# System
+import math
+
 # ROS
+import PyKDL as kdl
 import rospy
 import tf
 
@@ -54,25 +58,34 @@ class HeroArm(RobotPart):
         """
         # Convert a framestamped to the 'old style' goal definition.
         # This piece of code should be removed entirely
-        from tf.transformations import quaternion_from_euler, quaternion_multiply
-        from tue_manipulation_msgs.msg import GraspPrecomputeGoal
-        action = GraspPrecomputeGoal()
-        action.goal.x = frameStamped.frame.p.x()
-        action.goal.y = frameStamped.frame.p.y()
-        action.goal.z = frameStamped.frame.p.z()
-        action.goal.roll, action.goal.pitch, action.goal.yaw = frameStamped.frame.M.GetRPY()
+        # from tf.transformations import quaternion_from_euler, quaternion_multiply
+        # from tue_manipulation_msgs.msg import GraspPrecomputeGoal
+        # action = GraspPrecomputeGoal()
+        # action.goal.x = frameStamped.frame.p.x()
+        # action.goal.y = frameStamped.frame.p.y()
+        # action.goal.z = frameStamped.frame.p.z()
+        # action.goal.roll, action.goal.pitch, action.goal.yaw = frameStamped.frame.M.GetRPY()
         # End of 'this piece of code'
+
+        # In much of the TU/e code, it is 'assumed' that a gripper pointing forward with roll and pitch level
+        # has the x-axis pointing forward and z-axis pointing upward.
+        # However, the frame used for planning in the HSR config is the hand_palm_link, with x-axis pointing
+        # upwards and z-axis poinint forwards. Therefore, we have to convert this.
+        kdl_pose = kdl.Frame(frameStamped.frame)
+        kdl_pose.M.DoRotY(-0.5 * math.pi)
+        kdl_pose.M.DoRotX(math.pi)
+        pose = [kdl_pose.p.x(), kdl_pose.p.y(), kdl_pose.p.z()], list(kdl_pose.M.GetQuaternion())
 
         # The following code has been copied from the manipulation bridge and modified.
         # Further improvements can be done in a later stage
         success = True
-        pose_quaternion = quaternion_from_euler(action.goal.roll, action.goal.pitch, action.goal.yaw)
-        static_quaternion = quaternion_from_euler(3.14159265359, -1.57079632679, 0)
-        final_quaternion = quaternion_multiply(pose_quaternion, static_quaternion)
-        pose = [action.goal.x, action.goal.y, action.goal.z], final_quaternion
+        # pose_quaternion = quaternion_from_euler(action.goal.roll, action.goal.pitch, action.goal.yaw)
+        # static_quaternion = quaternion_from_euler(3.14159265359, -1.57079632679, 0)
+        # final_quaternion = quaternion_multiply(pose_quaternion, static_quaternion)
+        # pose = [action.goal.x, action.goal.y, action.goal.z], final_quaternion
 
-        ref_frame_id = hsrb_settings.get_frame("base")  # Original
-        # ref_frame_id = frameStamped.frame_id
+        # ref_frame_id = hsrb_settings.get_frame("base")  # Original  --> refers to base_footprint
+        ref_frame_id = frameStamped.frame_id.lstrip("/")  # Typically: base_link. Make sure to remove leading /
 
         ref_to_hand_poses = [pose]
 
@@ -86,7 +99,7 @@ class HeroArm(RobotPart):
         rospy.loginfo("Generating planning request: {}".format(PlanWithHandGoalsRequest))
         req = self._whole_body_interface._generate_planning_request(PlanWithHandGoalsRequest)
         req.origin_to_hand_goals = odom_to_hand_poses
-        req.ref_frame_id = self._whole_body_interface._end_effector_frame
+        req.ref_frame_id = self._whole_body_interface._end_effector_frame  # 'hand_palm_link'
         req.base_movement_type.val = BaseMovementType.ROTATION_Z
 
         service_name = self._whole_body_interface._setting['plan_with_hand_goals_service']
