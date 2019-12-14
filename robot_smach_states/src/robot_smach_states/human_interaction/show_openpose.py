@@ -13,7 +13,10 @@ class ShowOpenPose(smach.State):
         self._timeout = timeout
 
     def execute(self, userdata):
-        # call openpose service
+        try:
+            persons = self._robot.perception.detect_person_3d()
+        except:
+            return 'failed'
         if self._image_openpose:
             self._robot.hmi.show_image_from_msg(self._image_openpose, self._timeout)
         return "done"
