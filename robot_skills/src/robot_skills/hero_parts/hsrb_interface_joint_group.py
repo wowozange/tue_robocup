@@ -40,10 +40,18 @@ def _init_jointgroup(self, name):
     self._base_client = trajectory.TrajectoryController(
         base_config, "/base_coordinates")
     self._position_control_clients.append(self._base_client)
+
     # Disabled impedance controller
     # imp_config = settings.get_entry("trajectory", "impedance_control")
     # rospy.logdebug("Creating impedance controller")
     # self._impedance_client = trajectory.ImpedanceController(imp_config)
+
+    class MockImpedanceController(object):
+        def __init__(self):
+            self.config = None
+
+    self._impedance_client = MockImpedanceController()
+
     joint_state_topic = self._setting["joint_states_topic"]
     rospy.logdebug("Joint state topic: {}".format(joint_state_topic))
     self._joint_state_sub = utils.CachingSubscriber(

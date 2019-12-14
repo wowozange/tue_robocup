@@ -52,15 +52,27 @@ class HeroArm(RobotPart):
         :param allowed_touch_objects: List of object names in the worldmodel, which are allowed to be touched
         :return: True of False
         """
+        # Convert a framestamped to the 'old style' goal definition.
+        # This piece of code should be removed entirely
+        from tf.transformations import quaternion_from_euler, quaternion_multiply
+        from tue_manipulation_msgs.msg import GraspPrecomputeGoal
+        action = GraspPrecomputeGoal()
+        action.goal.x = frameStamped.frame.p.x()
+        action.goal.y = frameStamped.frame.p.y()
+        action.goal.z = frameStamped.frame.p.z()
+        action.goal.roll, action.goal.pitch, action.goal.yaw = frameStamped.frame.M.GetRPY()
+        # End of 'this piece of code'
+
         # The following code has been copied from the manipulation bridge and modified.
         # Further improvements can be done in a later stage
+        success = True
+        pose_quaternion = quaternion_from_euler(action.goal.roll, action.goal.pitch, action.goal.yaw)
+        static_quaternion = quaternion_from_euler(3.14159265359, -1.57079632679, 0)
+        final_quaternion = quaternion_multiply(pose_quaternion, static_quaternion)
+        pose = [action.goal.x, action.goal.y, action.goal.z], final_quaternion
 
-        # This line is completely different from the original
-        pose = [frameStamped.frame.p.x(), frameStamped.frame.p.y(), frameStamped.frame.p.z()],\
-            list(frameStamped.frame.M.GetQuaternion())
-
-        # ref_frame_id = hsrb_settings.get_frame("base")  # Original
-        ref_frame_id = frameStamped.frame_id
+        ref_frame_id = hsrb_settings.get_frame("base")  # Original
+        # ref_frame_id = frameStamped.frame_id
 
         ref_to_hand_poses = [pose]
 
