@@ -46,7 +46,7 @@ _HSRB_SETTINGS = """
             "hand_controller_prefix":       "/hero/gripper_controller",
             "omni_base_controller_prefix":  "/hero/omni_base_controller",
             "plan_with_constraints_service":"/plan_with_constraints",
-            "plan_with_hand_goals_service": "/plan_with_hand_goals",
+            "plan_with_hand_goals_service": "/hero/plan_with_hand_goals",
             "plan_with_hand_line_service":  "/plan_with_hand_line",
             "plan_with_joint_goals_service":"/plan_with_joint_goals",
             "timeout":                       1.0,

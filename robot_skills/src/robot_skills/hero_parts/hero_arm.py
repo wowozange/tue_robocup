@@ -5,6 +5,7 @@ import tf
 # Toyota
 # ToDo: add dependencies
 from hsrb_interface import geometry
+from hsrb_interface import settings as hsrb_settings
 from hsrb_interface.joint_group import JointGroup
 from tmc_manipulation_msgs.msg import ArmManipulationErrorCodes, BaseMovementType
 from tmc_planning_msgs.srv import PlanWithHandGoals, PlanWithHandGoalsRequest
@@ -22,7 +23,7 @@ class HeroArm(RobotPart):
 
         :param robot_name: robot name
         :param tf_listener: tf_listener
-        :param get_joint_states: method for getting the last joint states
+        :param whole_body_interface: JointGroup to control the arm
         """
         super(HeroArm, self).__init__(robot_name, tf_listener)
 
@@ -63,7 +64,7 @@ class HeroArm(RobotPart):
 
         ref_to_hand_poses = [pose]
 
-        odom_to_ref_pose = self._whole_body._lookup_odom_to_ref(ref_frame_id)
+        odom_to_ref_pose = self._whole_body_interface._lookup_odom_to_ref(ref_frame_id)
         odom_to_ref = geometry.pose_to_tuples(odom_to_ref_pose)
         odom_to_hand_poses = []
         for ref_to_hand in ref_to_hand_poses:
@@ -71,12 +72,12 @@ class HeroArm(RobotPart):
             odom_to_hand_poses.append(geometry.tuples_to_pose(odom_to_hand))
 
         rospy.loginfo("Generating planning request: {}".format(PlanWithHandGoalsRequest))
-        req = self._whole_body._generate_planning_request(PlanWithHandGoalsRequest)
+        req = self._whole_body_interface._generate_planning_request(PlanWithHandGoalsRequest)
         req.origin_to_hand_goals = odom_to_hand_poses
-        req.ref_frame_id = self.whole_body._end_effector_frame
+        req.ref_frame_id = self._whole_body_interface._end_effector_frame
         req.base_movement_type.val = BaseMovementType.ROTATION_Z
 
-        service_name = self.whole_body._setting['plan_with_hand_goals_service']
+        service_name = self._whole_body_interface._setting['plan_with_hand_goals_service']
         plan_service = rospy.ServiceProxy(service_name, PlanWithHandGoals)
         rospy.loginfo("Sending planning request to moveit: {}".format(req))
         res = plan_service.call(req)
@@ -86,8 +87,8 @@ class HeroArm(RobotPart):
             success = False
         else:
             res.base_solution.header.frame_id = hsrb_settings.get_frame('odom')
-            constrained_traj = self._whole_body._constrain_trajectories(res.solution, res.base_solution)
-            self._whole_body._execute_trajectory(constrained_traj)
+            constrained_traj = self._whole_body_interface._constrain_trajectories(res.solution, res.base_solution)
+            self._whole_body_interface._execute_trajectory(constrained_traj)
 
         return success
 
