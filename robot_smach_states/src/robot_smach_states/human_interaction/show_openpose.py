@@ -14,7 +14,8 @@ class ShowOpenPose(smach.State):
 
     def execute(self, userdata):
         try:
-            persons = self._robot.perception.detect_person_3d()
+            persons = self._robot.perception.detect_person_3d() # we should switch to openpose stream here
+            # so next step is to develop a service that makes openpose switch between stream and service (and v.v.)
         except:
             return 'failed'
         if self._image_openpose:
