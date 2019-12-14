@@ -1,7 +1,7 @@
 """
-This file is supposed to override the 'default' settings in hsrb interface, specifically to
-ROS_GRAPH_NAMES
+This file contains 'fixes' for the hsrb_interface.settings module.
 """
+
 import json
 from hsrb_interface import settings as hsrb_settings
 
@@ -178,4 +178,7 @@ _HSRB_SETTINGS = """
 
 
 def update_hsrb_settings():
+    """
+    Updates the (hardcoded) settings of the hsrb_interface.settings module.
+    """
     hsrb_settings._SETTINGS = json.loads(_HSRB_SETTINGS)

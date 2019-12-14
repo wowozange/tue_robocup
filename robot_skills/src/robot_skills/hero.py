@@ -1,5 +1,5 @@
 from robot_skills import robot, api, arms, base, ebutton, head, ears, lights, perception, speech, torso, world_model_ed
-from .hero_parts import HeroArm
+from .hero_parts import get_hsrb_interface, HeroArm
 from .simulation import is_sim_mode, SimEButton
 
 import rospy
@@ -9,6 +9,9 @@ class Hero(robot.Robot):
     """docstring for Hero"""
     def __init__(self, wait_services=False):
         super(Hero, self).__init__(robot_name="hero", wait_services=wait_services)
+
+        self._hsrb_interface = get_hsrb_interface()
+        self._whole_body_interface = self._hsrb_interface.try_get("whole_body")
 
         self._ignored_parts = ["leftArm", "torso", "spindle", "head"]
 
@@ -23,7 +26,7 @@ class Hero(robot.Robot):
         # For scalability, this needs to be merged with Albert's work
         self.add_arm_part(
             "leftArm",
-            HeroArm(self.robot_name, self.tf_listener, self.get_joint_states),
+            HeroArm(self.robot_name, self.tf_listener, self._whole_body_interface),
         )
 
         self.add_body_part('head', head.Head(self.robot_name, self.tf_listener))

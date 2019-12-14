@@ -5,21 +5,18 @@ import tf
 # Toyota
 # ToDo: add dependencies
 from hsrb_interface import geometry
-from hsrb_interface import Robot
+from hsrb_interface.joint_group import JointGroup
 from tmc_manipulation_msgs.msg import ArmManipulationErrorCodes, BaseMovementType
 from tmc_planning_msgs.srv import PlanWithHandGoals, PlanWithHandGoalsRequest
 
 # Robot skills
 from robot_skills.util.kdl_conversions import FrameStamped
 from ..core import RobotPart
-from .joint_group import update_joint_group
-
-from .hsrb_robot import update_hsrb_settings
 
 
 class HeroArm(RobotPart):
-    def __init__(self, robot_name, tf_listener, get_joint_states):
-        # type: (str, tf.TransformListener, callable) -> None
+    def __init__(self, robot_name, tf_listener, whole_body_interface):
+        # type: (str, tf.TransformListener, JointGroup) -> None
         """
         Arm interface for Hero (HSR) robot
 
@@ -31,20 +28,10 @@ class HeroArm(RobotPart):
 
         # The following is *copied* from Arm and should therefore move to a better location
         self.default_configurations = self.load_param('skills/arm/default_configurations')
-        self.default_trajectories   = self.load_param('skills/arm/default_trajectories')
+        self.default_trajectories = self.load_param('skills/arm/default_trajectories')
 
-        # Fix namespacing
-        # hsrb_settings._HSRB_SETTINGS = hsrb_settings._HSRB_SETTINGS.replace("/hsrb/", "/hero/")
-        # print(hsrb_settings._HSRB_SETTINGS)
-        # from .hsrb_robot import Robot
-        print("Constructing robot")
-        update_hsrb_settings()
-        update_joint_group()
-        self._hsrb_robot_interface = Robot()  # ToDo: construct robot object in Hero?
-        print("Constructing interface")
-        self._whole_body_interface = self._hsrb_robot_interface.try_get("whole_body")
+        self._whole_body_interface = whole_body_interface
         print("Hero Arm init done")
-        # self._whole_body_interface = ConfigurableJointGroup("whole_body", tf_listener)
 
     def send_goal(self, frameStamped, timeout=30, pre_grasp=False, first_joint_pos_only=False,
                   allowed_touch_objects=None):
