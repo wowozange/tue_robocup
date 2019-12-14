@@ -6,18 +6,15 @@ import tf
 # ToDo: add dependencies
 from hsrb_interface import geometry
 from hsrb_interface import Robot
-from hsrb_interface import settings as hsrb_settings
 from tmc_manipulation_msgs.msg import ArmManipulationErrorCodes, BaseMovementType
 from tmc_planning_msgs.srv import PlanWithHandGoals, PlanWithHandGoalsRequest
 
 # Robot skills
 from robot_skills.util.kdl_conversions import FrameStamped
 from ..core import RobotPart
-from .joint_group import ConfigurableJointGroup
+from .joint_group import update_joint_group
 
-# Fix HSRB settings
-import json
-hsrb_settings._SETTINGS = json.loads(hsrb_settings._HSRB_SETTINGS.replace("/hsrb/", "/hero/"))
+from .hsrb_robot import update_hsrb_settings
 
 
 class HeroArm(RobotPart):
@@ -41,9 +38,11 @@ class HeroArm(RobotPart):
         # print(hsrb_settings._HSRB_SETTINGS)
         # from .hsrb_robot import Robot
         print("Constructing robot")
-        hsrb_robot = Robot()  # ToDo: construct robot object in Hero?
+        update_hsrb_settings()
+        update_joint_group()
+        self._hsrb_robot_interface = Robot()  # ToDo: construct robot object in Hero?
         print("Constructing interface")
-        self._whole_body_interface = hsrb_robot.try_get("whole_body")
+        self._whole_body_interface = self._hsrb_robot_interface.try_get("whole_body")
         print("Hero Arm init done")
         # self._whole_body_interface = ConfigurableJointGroup("whole_body", tf_listener)
 
