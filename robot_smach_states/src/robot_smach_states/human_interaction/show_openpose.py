@@ -6,7 +6,7 @@ import rospy
 
 class ShowOpenPose(smach.State):
     def __init__(self, robot, timeout = 5.0):
-        smach.State.__init__(self, outcomes=["done"])
+        smach.State.__init__(self, outcomes=['done', 'failed'])
         self._robot = robot
         self._image_openpose = None
         self._openpose_subscriber = rospy.Subscriber('openpose/result_image', Image, self._callback)
@@ -19,7 +19,7 @@ class ShowOpenPose(smach.State):
             return 'failed'
         if self._image_openpose:
             self._robot.hmi.show_image_from_msg(self._image_openpose, self._timeout)
-        return "done"
+        return 'done'
 
     def _callback(self, data):
         rospy.logdebug('Received openpose result image')
