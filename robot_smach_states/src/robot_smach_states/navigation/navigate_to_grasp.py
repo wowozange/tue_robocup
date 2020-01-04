@@ -1,5 +1,6 @@
 # System
 import math
+from typing import Tuple
 
 # ROS
 from geometry_msgs.msg import *
@@ -9,6 +10,7 @@ import rospy
 from cb_planner_msgs_srvs.msg import *
 from robot_skills.arms import PublicArm
 from robot_skills.util.entity import Entity
+from robot_skills.util.kdl_conversions import FrameStamped
 from robot_smach_states.navigation import NavigateTo
 from robot_smach_states.util.designators import check_resolve_type
 from robot_smach_states.util.designators.arm import UnoccupiedArmDesignator
@@ -30,7 +32,8 @@ class NavigateToGrasp(NavigateTo):
             Please specify left or right, will default to left. This is Deprecated')
             self.arm_designator = UnoccupiedArmDesignator(self.robot, {})
 
-    def generateConstraint(self):
+    def determine_offsets(self):
+        # type: () -> Tuple[FrameStamped, float, float]
         arm = self.arm_designator.resolve()
         if not arm:
             rospy.logerr("Could not resolve arm")
@@ -40,20 +43,28 @@ class NavigateToGrasp(NavigateTo):
         radius = math.hypot(arm.base_offset.x(), arm.base_offset.y())
 
         entity = self.entity_designator.resolve()
+        rospy.loginfo("Grasp entity id:{0}".format(entity.id))
 
         if not entity:
-            rospy.logerr("No such entity")
-            return None
-
-        rospy.loginfo("Navigating to grasp entity id:{0}".format(entity.id))
+            raise RuntimeError("No such entity")
 
         try:
             pose = entity.pose  # TODO Janno: Not all entities have pose information
-            x = pose.frame.p.x()
-            y = pose.frame.p.y()
         except KeyError as ke:
-            rospy.logerr("Could not determine pose: ".format(ke))
+            raise RuntimeError("Could not determine pose: {}".format(ke))
+
+        return pose, radius, angle_offset
+
+    def generateConstraint(self):
+
+        try:
+            pose, radius, angle_offset = self.determine_offsets()
+        except RuntimeError as e:
+            rospy.logerr(e.message)
             return None
+
+        x = pose.frame.p.x()
+        y = pose.frame.p.y()
 
         # Outer radius
         ro = "(x-%f)^2+(y-%f)^2 < %f^2" % (x, y, radius+0.075)
