@@ -36,7 +36,7 @@ class NavigateToGrasp(NavigateTo):
             rospy.logerr("Could not resolve arm")
             return None
 
-        angle_offset =-math.atan2(arm.base_offset.y(), arm.base_offset.x())
+        angle_offset = -math.atan2(arm.base_offset.y(), arm.base_offset.x())
         radius = math.hypot(arm.base_offset.x(), arm.base_offset.y())
 
         entity = self.entity_designator.resolve()
@@ -55,15 +55,9 @@ class NavigateToGrasp(NavigateTo):
             rospy.logerr("Could not determine pose: ".format(ke))
             return None
 
-        try:
-            rz, _, _ = entity.pose.frame.M.GetEulerZYX()
-        except KeyError as ke:
-            rospy.logerr("Could not determine pose.rz: ".format(ke))
-            rz = 0
-
         # Outer radius
-        ro = "(x-%f)^2+(y-%f)^2 < %f^2"%(x, y, radius+0.075)
-        ri = "(x-%f)^2+(y-%f)^2 > %f^2"%(x, y, radius-0.075)
+        ro = "(x-%f)^2+(y-%f)^2 < %f^2" % (x, y, radius+0.075)
+        ri = "(x-%f)^2+(y-%f)^2 > %f^2" % (x, y, radius-0.075)
         pc = PositionConstraint(constraint=ri+" and "+ro, frame="/map")
         oc = OrientationConstraint(look_at=Point(x, y, 0.0), frame="/map", angle_offset=angle_offset)
 
