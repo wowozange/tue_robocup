@@ -1,40 +1,70 @@
 # System
-from threading import Condition
+from threading import Condition, Event
 
 # ROS
 import rospy
-from sensor_msgs.msg import Image
+from people_recognition_msgs.srv import RecognizePeople3D
+from sensor_msgs.msg import Image, CameraInfo
 from std_srvs.srv import Empty
+import message_filters
 
 # TU/e Robotics
 from image_recognition_msgs.srv import Annotate, Recognize, RecognizeResponse, GetFaceProperties
 from image_recognition_msgs.msg import Annotation
-from rgbd.srv import Project2DTo3D
+from rgbd_msgs.srv import Project2DTo3D
 from robot_skills.robot_part import RobotPart
 from robot_skills.util.kdl_conversions import VectorStamped
 from robot_skills.util.image_operations import img_recognitions_to_rois, img_cutout
 
 
 class Perception(RobotPart):
-    def __init__(self, robot_name, tf_listener, image_topic=None):
+    def __init__(self, robot_name, tf_listener, image_topic=None, projection_srv=None, camera_base_ns=''):
         super(Perception, self).__init__(robot_name=robot_name, tf_listener=tf_listener)
         if image_topic is None:
             self.image_topic = "/" + self.robot_name + "/top_kinect/rgb/image"
         else:
             self.image_topic = image_topic
 
+        if projection_srv is None:
+            projection_srv_name = '/' + robot_name + '/top_kinect/project_2d_to_3d'
+        else:
+            projection_srv_name = projection_srv
+
+        self._camera_base_ns = camera_base_ns
+
         self._camera_lazy_sub = None
         self._camera_cv = Condition()
         self._camera_last_image = None
 
-        self._annotate_srv = self.create_service_client('/' + robot_name + '/face_recognition/annotate', Annotate)
-        self._recognize_srv = self.create_service_client('/' + robot_name + '/face_recognition/recognize', Recognize)
-        self._clear_srv = self.create_service_client('/' + robot_name + '/face_recognition/clear', Empty)
+        self._annotate_srv = self.create_service_client(
+            '/' + robot_name + '/people_recognition/face_recognition/annotate', Annotate)
+        self._recognize_srv = self.create_service_client(
+            '/' + robot_name + '/people_recognition/face_recognition/recognize', Recognize)
+        self._clear_srv = self.create_service_client(
+            '/' + robot_name + '/people_recognition/face_recognition/clear', Empty)
 
-        self._face_properties_srv = self.create_service_client('/' + robot_name + '/face_recognition/get_face_properties', GetFaceProperties)
+        self._image_data = (None, None, None)
 
-        self._projection_srv = self.create_service_client('/' + robot_name + '/top_kinect/project_2d_to_3d',
-                                                          Project2DTo3D)
+        self._face_properties_srv = self.create_service_client(
+            '/' + robot_name + '/people_recognition/face_recognition/get_face_properties', GetFaceProperties)
+
+        self._projection_srv = self.create_service_client(projection_srv_name, Project2DTo3D)
+        self._person_recognition_3d_srv = \
+            self.create_service_client('/' + robot_name + '/people_recognition/detect_people_3d', RecognizePeople3D)
+
+        # camera topics
+        self.depth_info_sub = message_filters.Subscriber('{}/depth_registered/camera_info'.format(self._camera_base_ns), CameraInfo)
+        self.depth_sub = message_filters.Subscriber('{}/depth_registered/image'.format(self._camera_base_ns), Image)
+        self.rgb_sub = message_filters.Subscriber('{}/rgb/image_raw'.format(self._camera_base_ns), Image)
+
+        self.ts = message_filters.ApproximateTimeSynchronizer([self.rgb_sub, self.depth_sub, self.depth_info_sub],
+                                                         queue_size=10,
+                                                         slop=10)
+        self.ts.registerCallback(self._callback)
+
+    def _callback(self, rgb, depth, depth_info):
+        rospy.logdebug('Received rgb, depth, cam_info')
+        self._image_data = (rgb, depth, depth_info)
 
     def close(self):
         pass
@@ -46,11 +76,8 @@ class Perception(RobotPart):
         self._camera_cv.release()
 
     def get_image(self, timeout=5):
-        # lazy subscribe to the kinect
+        # lazy subscribe to the rgb(d) camera
         if not self._camera_lazy_sub:
-            # for test with tripod kinect
-            # self._camera_lazy_sub = rospy.Subscriber("/camera/rgb/image_rect_color", Image, self._image_cb)
-            # for the robot
             rospy.loginfo("Creating subscriber")
             self._camera_lazy_sub = rospy.Subscriber(self.image_topic, Image, self._image_cb)
             rospy.loginfo('lazy subscribe to %s', self._camera_lazy_sub.name)
@@ -93,7 +120,7 @@ class Perception(RobotPart):
 
         # If necessary, transform the point
         if frame_id is not None:
-            print("Transforming roi to {}".format(frame_id))
+            rospy.loginfo("Transforming roi to {}".format(frame_id))
             result = result.projectToFrame(frame_id=frame_id, tf_listener=self.tf_listener)
 
         # Return the result
@@ -115,10 +142,12 @@ class Perception(RobotPart):
             image = self.get_image()
         try:
             r = self._recognize_srv(image=image)
-            rospy.loginfo('found %d face(s) in the image', len(r.recognitions))
+            rospy.loginfo('Found %d face(s) in the image', len(r.recognitions))
         except rospy.ServiceException as e:
-            rospy.logerr(e.message)
+            rospy.logerr("Can't connect to face recognition service: {}".format(e))
             r = RecognizeResponse()
+        except Exception as e:
+            rospy.logerr("Can't detect faces: {}".format(e))
         return r
 
     def learn_person(self, name='operator'):
@@ -126,13 +155,13 @@ class Perception(RobotPart):
         WIDTH_TRESHOLD = 88
         try:
             image = self.get_image()
-        except:
-            rospy.logerr("Cannot get image")
+        except Exception as e:
+            rospy.logerr("Can't get image: {}".format(e))
             return False
 
         raw_recognitions = self._get_faces(image).recognitions
         recognitions = [r for r in raw_recognitions if r.roi.height > HEIGHT_TRESHOLD and r.roi.width > WIDTH_TRESHOLD]
-        rospy.loginfo('found %d valid face(s)', len(recognitions))
+        rospy.loginfo('Found %d valid face(s)', len(recognitions))
 
         if len(recognitions) != 1:
             rospy.loginfo("Too many faces: {}".format(len(recognitions)))
@@ -144,7 +173,10 @@ class Perception(RobotPart):
         try:
             self._annotate_srv(image=image, annotations=[Annotation(label=name, roi=recognition.roi)])
         except rospy.ServiceException as e:
-            rospy.logerr('annotate failed: {}'.format(e))
+            rospy.logerr("Can't connect to person learning service: {}".format(e))
+            return False
+        except Exception as e:
+            rospy.logerr("Can't learn a person: {}".format(e))
             return False
 
         return True
@@ -256,9 +288,25 @@ class Perception(RobotPart):
             face_properties_response = self._face_properties_srv(faces)
             face_properties = face_properties_response.properties_array
         except Exception as e:
-            rospy.logerr(str(e))
+            rospy.logerr(e)
             return [None] * len(faces)
 
         face_log = '\n - '.join([''] + [repr(s) for s in face_properties])
         rospy.loginfo('face_properties:%s', face_log)
         return face_properties
+
+    def get_rgb_depth_caminfo(self, timeout=5):
+        """
+        Get an rgb image and and depth image, along with camera info for the depth camera.
+        The returned tuple can serve as input for world_model_ed.ED.detect_people.
+
+        :param timeout: How long to wait until the images are all collected.
+        :return: tuple(rgb, depth, depth_info) or a None if no images could be gathered.
+        """
+        if any(self._image_data):
+            return self._image_data
+        else:
+            return None, None, None
+
+    def detect_person_3d(self, rgb, depth, depth_info):
+        return self._person_recognition_3d_srv(image_rgb=rgb, image_depth=depth, camera_info_depth=depth_info).people

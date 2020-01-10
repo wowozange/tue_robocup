@@ -9,21 +9,18 @@ names = female_names + male_names
 locations = [
     {'name': 'couch_table',   'room': 'livingroom', 'category': 'table',   'manipulation': 'yes'},
     {'name': 'dinner_table',  'room': 'livingroom', 'category': 'table',   'manipulation': 'yes'},
-    {'name': 'bar',           'room': 'livingroom', 'category': 'table',   'manipulation': 'yes'},
     {'name': 'bookcase',      'room': 'livingroom', 'category': 'shelf',   'manipulation': 'yes'},
+    {'name': 'panda_table',   'room': 'livingroom', 'category': 'table',   'manipulation': 'yes'},
 
     {'name': 'cabinet',       'room': 'kitchen',    'category': 'shelf',   'manipulation': 'yes'},
     {'name': 'trashbin',      'room': 'kitchen',    'category': 'utility', 'manipulation': 'no'},
-    {'name': 'plant',         'room': 'kitchen',    'category': 'plant',   'manipulation': 'no'},
+    {'name': 'couch',         'room': 'kitchen',    'category': 'utility', 'manipulation': 'no'},
 
-    {'name': 'bed',           'room': 'bedroom',    'category': 'seat',    'manipulation': 'yes'},
-    {'name': 'nightstand',    'room': 'bedroom',    'category': 'table',   'manipulation': 'yes'},
-
-    {'name': 'flight_case',   'room': 'workshop',   'category': 'table',   'manipulation': 'no'},
-    {'name': 'battery_table', 'room': 'workshop',   'category': 'table',   'manipulation': 'no'},
     {'name': 'workbench',     'room': 'workshop',   'category': 'table',   'manipulation': 'yes'},
 
-    {'name': 'hallway_table', 'room': 'hallway',    'category': 'table',   'manipulation': 'yes'}
+    {'name': 'hallway_table', 'room': 'hallway',    'category': 'table',   'manipulation': 'yes'},
+    {'name': 'bar',           'room': 'hallway',    'category': 'table',   'manipulation': 'yes'},
+    {'name': 'paperbin',      'room': 'hallway',    'category': 'utility', 'manipulation': 'no'}
 ]
 
 location_rooms = list(set([ o["room"] for o in locations ]))
@@ -96,6 +93,8 @@ inspect_areas = {
 inspect_positions = {
 }
 
+default_target_radius = 0.2
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 most_probable_location_in_room_map = {
@@ -113,6 +112,14 @@ def get_location_from_room(room_id):
     return None
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+def object_names_of_category(category):
+    return [obj['name'] for obj in objects if obj['category'] == category]
+
+drink_names = object_names_of_category('drink')
+drink_spec = "T['drink': O] -> OPTIONS[O]\n\n"
+for dn in drink_names:
+    drink_spec += "OPTIONS['{drink}'] -> {drink}\n".format(drink=dn)
 
 ''' colors from printing on screen '''
 class bcolors:
@@ -204,6 +211,11 @@ def get_locations(room=None, pick_location=None, place_location=None):
                    (pick_location == None or pick_location == is_pick_location(loc["name"])) and \
                    (place_location == None or place_location == is_place_location(loc["name"]))]
 
+def is_known_object(obj):
+    for o in objects:
+        if o["name"] == obj:
+            return True
+    return False
 
 def get_objects(category=None):
     return [obj["name"] for obj in objects

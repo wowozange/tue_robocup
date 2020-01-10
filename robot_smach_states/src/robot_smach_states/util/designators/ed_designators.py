@@ -1,5 +1,3 @@
-#! /usr/bin/env python
-
 # System
 import inspect
 import math
@@ -13,7 +11,7 @@ from visualization_msgs.msg import MarkerArray, Marker
 # TU/e Robotics
 from cb_planner_msgs_srvs.msg import PositionConstraint
 from robot_skills.util.entity import Entity
-from robot_skills.util.kdl_conversions import point_msg_to_kdl_vector, VectorStamped, FrameStamped,\
+from robot_skills.util.kdl_conversions import VectorStamped, FrameStamped,\
     kdl_frame_stamped_from_XYZRPY
 from robot_smach_states.util.designators.core import Designator
 from robot_smach_states.util.designators.checks import check_resolve_type
@@ -44,17 +42,18 @@ class EdEntityCollectionDesignator(Designator):
         @param id the ID of the object to get info about
         @param parse whether to parse the data string associated with the object model or entity
         @param type_designator same as type but dynamically resolved trhough a designator. Mutually exclusive with type
-        @param center_point_designator same as center_point but dynamically resolved through a designator. Mutually exclusive with center_point
+        @param center_point_designator same as center_point but dynamically resolved through a designator.
+                Mutually exclusive with center_point
         @param id_designator same as id but dynamically resolved through a designator. Mutually exclusive with id"""
         super(EdEntityCollectionDesignator, self).__init__(resolve_type=[Entity], name=name)
         self.ed = robot.ed
-        if type != "" and type_designator != None:
+        if type != "" and type_designator is not None:
             raise TypeError("Specify either type or type_designator, not both")
-        if center_point != None and center_point_designator != None:
+        if center_point is not None and center_point_designator is not None:
             raise TypeError("Specify either center_point or center_point_designator, not both")
-        elif center_point == None and center_point_designator == None:
+        elif center_point is None and center_point_designator is None:
             center_point = VectorStamped()
-        if id != "" and id_designator != None:
+        if id != "" and id_designator is not None:
             raise TypeError("Specify either id or id_designator, not both")
 
         self.type = type
@@ -64,13 +63,16 @@ class EdEntityCollectionDesignator(Designator):
         self.parse = parse
         self.criteriafuncs = criteriafuncs or []
 
-        if type_designator: check_resolve_type(type_designator, str)
+        if type_designator:
+            check_resolve_type(type_designator, str)
         self.type_designator = type_designator
 
-        if center_point_designator: check_resolve_type(center_point_designator, VectorStamped)
+        if center_point_designator:
+            check_resolve_type(center_point_designator, VectorStamped)
         self.center_point_designator = center_point_designator
 
-        if id_designator: check_resolve_type(id_designator, str)
+        if id_designator:
+            check_resolve_type(id_designator, str)
         self.id_designator = id_designator
 
         self.debug = debug
@@ -98,10 +100,6 @@ class EdEntityCollectionDesignator(Designator):
         rospy.logerr("No entities found in {0}".format(self))
         return None
 
-        # def __repr__(self):
-        #     return "EdEntityCollectionDesignator(robot, type={0}, center_point={1}, radius={2}, id={3}, parse={4}, criteriafuncs={5})".format(
-        #         self.type, str(self.center_point).replace("\n", " "), self.radius, self.id, self.parse, self.criteriafuncs)
-
 
 class EdEntityDesignator(Designator):
     """
@@ -109,8 +107,8 @@ class EdEntityDesignator(Designator):
     """
 
     def __init__(self, robot, type="", center_point=None, radius=0, id="", parse=True, criteriafuncs=None,
-                 weight_function=None,
-                 type_designator=None, center_point_designator=None, id_designator=None, debug=False, name=None):
+                 weight_function=None, type_designator=None, center_point_designator=None, id_designator=None,
+                 debug=False, name=None):
         """Designates an entity of some type, within a radius of some center_point, with some id,
         that match some given criteria functions.
         @param robot the robot to use for Ed queries
@@ -120,23 +118,24 @@ class EdEntityDesignator(Designator):
         @param id the ID of the object to get info about
         @param parse whether to parse the data string associated with the object model or entity
         @param criteriafuncs a list of functions that take an entity and return a bool (True if criterium met)
-        @param weight_function returns a weight for each entity, the one with the lowest weight will be selected (could be a distance calculation)
+        @param weight_function returns a weight for each entity, the one with the lowest weight will be selected
+        (could be a distance calculation)
         @param type_designator same as type but dynamically resolved trhough a designator. Mutually exclusive with type
-        @param center_point_designator same as center_point but dynamically resolved trhough a designator. Mutually exclusive with center_point
+        @param center_point_designator same as center_point but dynamically resolved trhough a designator.
+        Mutually exclusive with center_point
         @param id_designator same as id but dynamically resolved through a designator. Mutually exclusive with id"""
         super(EdEntityDesignator, self).__init__(resolve_type=Entity, name=name)
+
+        assert not type or type_designator is None, "Specify either type or type_designator, not both"
+        assert center_point is None or center_point_designator is None, \
+            "Specify either center_point or center_point_designator, not both"
+        assert not id or id_designator is None, "Specify either id or id_designator, not both"
+
         self.robot = robot
         self.ed = robot.ed
-        if type != "" and type_designator != None:
-            raise TypeError("Specify either type or type_designator, not both")
-        if center_point != None and center_point_designator != None:
-            raise TypeError("Specify either center_point or center_point_designator, not both")
-        elif center_point == None and center_point_designator == None:
-            center_point = VectorStamped()
-        if id != "" and id_designator != None:
-            raise TypeError("Specify either id or id_designator, not both")
-
         self.type = type
+        if center_point is None and center_point_designator is None:
+            center_point = VectorStamped()
         self.center_point = center_point
         self.radius = radius
         self.id = id
@@ -144,15 +143,16 @@ class EdEntityDesignator(Designator):
         self.criteriafuncs = criteriafuncs or []
         self.weight_function = weight_function or (lambda entity: 0)
 
-        if type_designator: check_resolve_type(type_designator, str,
-                                               list)  # the resolve type of type_designator can be either st or list
+        if type_designator:  # the resolve type of type_designator can be either str or list
+            check_resolve_type(type_designator, str, list)
         self.type_designator = type_designator
 
-        if center_point_designator: check_resolve_type(center_point_designator,
-                                                       VectorStamped)  # the resolve type of type_designator can be either st or list
+        if center_point_designator:  # the resolve type of type_designator can be either VectorStamped
+            check_resolve_type(center_point_designator, VectorStamped)
         self.center_point_designator = center_point_designator
 
-        if id_designator: check_resolve_type(id_designator, str)
+        if id_designator:  # the resolve type of id_designator must be str
+            check_resolve_type(id_designator, str)
         self.id_designator = id_designator
 
         self.debug = debug
@@ -213,12 +213,6 @@ class EdEntityDesignator(Designator):
         rospy.logerr("No entities found in {0}".format(self))
         return None
 
-        # def __repr__(self):
-        #     criteria_code = [inspect.getsource(criterium).strip().replace('\\n', '\n') for criterium in self.criteriafuncs]
-
-        #     return "EdEntityDesignator(robot, type={0}, center_point={1}, radius={2}, id={3}, parse={4}, criteriafuncs={5})".format(
-        #         self.type, str(self.center_point).replace("\n", " "), self.radius, self.id, self.parse, pprint.pformat(criteria_code))
-
 
 class EntityByIdDesignator(Designator):
     def __init__(self, robot, id, parse=True, name=None):
@@ -244,6 +238,7 @@ class EntityByIdDesignator(Designator):
     def __repr__(self):
         return "EntityByIdDesignator(id={}, name={})".format(self.id_, self.name)
 
+
 class ReasonedEntityDesignator(Designator):
     def __init__(self, robot, query, name=None):
         """
@@ -263,7 +258,7 @@ class ReasonedEntityDesignator(Designator):
         first_answer = self.robot.reasoner.query_first_answer(self.reasoner_query)
         if not first_answer:
             return None
-        print "first_answer is:", str(first_answer)
+        rospy.loginfo("first_answer is:", str(first_answer))
 
         entities = self.ed.get_entities(id=str(first_answer), parse=True)
         if entities:
@@ -287,7 +282,8 @@ class EmptySpotDesignator(Designator):
     CABINET = "bookcase"
     PLACE_SHELF = "shelf2"
     cabinet = ds.EntityByIdDesignator(robot, id=CABINET, name="pick_shelf")
-    place_position = ds.LockingDesignator(ds.EmptySpotDesignator(robot, cabinet, name="placement", area=PLACE_SHELF), name="place_position")
+    place_position = ds.LockingDesignator(ds.EmptySpotDesignator(robot, cabinet, name="placement", area=PLACE_SHELF),
+                                          name="place_position")
     """
 
     def __init__(self, robot, place_location_designator, name=None, area=None):
@@ -364,7 +360,12 @@ class EmptySpotDesignator(Designator):
         return not any(entities_at_poi)
 
     def distance_to_poi_area(self, frame_stamped):
-        radius = math.hypot(self.robot.grasp_offset.x, self.robot.grasp_offset.y)
+
+        # ToDo: cook up something better: we need the arm that we're currently using but this would require a
+        # rather large API break (issue #739)
+        base_offset = self.robot.arms.values()[0].base_offset
+        radius = math.hypot(base_offset.x(), base_offset.y())
+
         x = frame_stamped.frame.p.x()
         y = frame_stamped.frame.p.y()
         radius -= 0.1
@@ -499,7 +500,8 @@ class EmptySpotDesignator(Designator):
         return points
 
     def __repr__(self):
-        return "EmptySpotDesignator(place_location_designator={}, name='{}', area='{}')".format(self.place_location_designator, self._name, self._area)
+        return "EmptySpotDesignator(place_location_designator={}, name='{}', area='{}')"\
+                    .format(self.place_location_designator, self._name, self._area)
 
 
 class LockToId(Designator):
@@ -549,7 +551,5 @@ class LockToId(Designator):
 
 
 if __name__ == "__main__":
-
     import doctest
-
     doctest.testmod()

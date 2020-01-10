@@ -1,5 +1,3 @@
-#! /usr/bin/env python
-
 # ROS
 import rospy
 import smach
@@ -233,8 +231,7 @@ class WaitCondition(smach.State):
     def execute(self, userdata):
         starttime = rospy.Time.now()
 
-        while (rospy.Time.now() - starttime) < rospy.Duration(self.timeout)\
-         and not rospy.is_shutdown():
+        while (rospy.Time.now() - starttime) < rospy.Duration(self.timeout) and not rospy.is_shutdown():
             cb_output = self.condition_callback(userdata, self.robot)
             if cb_output:
                 userdata.trigger_value = cb_output
@@ -274,7 +271,7 @@ class WaitForDesignator(smach.State):
         counter = 0
 
         while counter < self.attempts:
-            print "WaitForDesignator: waiting {0}/{1}".format(counter, self.attempts)
+            rospy.loginfo("WaitForDesignator: waiting {0}/{1}".format(counter, self.attempts))
 
             result = self.designator.resolve()
             if result:
@@ -308,6 +305,49 @@ class UnlockDesignator(smach.State):
             str(self.locking_designator.resolve())[:10], self.locking_designator))
         self.locking_designator.unlock()
         return 'unlocked'
+
+
+class CheckBool(smach.State):
+    """
+    Provide a different transition based on a boolean designator.
+    """
+    def __init__(self, check_designator):
+        """
+        :param check_designator: designator resolving to True or False
+        """
+        super(CheckBool, self).__init__(outcomes=["true", "false"])
+        ds.check_type(check_designator, bool)
+        self._check_designator = check_designator
+
+    def execute(self, userdata=None):
+        val = self._check_designator.resolve() if hasattr(self._check_designator, "resolve") else self._check_designator
+        if val:
+            return "true"
+        else:
+            return "false"
+
+
+class ToggleBool(smach.State):
+    """
+    Toggle a boolean designator from True to False and from False to True
+    """
+    def __init__(self, check_designator):
+        """
+        :param check_designator: boolean designator to be toggled
+        """
+        super(ToggleBool, self).__init__(outcomes=["done"])
+        ds.is_writeable(check_designator)
+        ds.check_type(check_designator, bool)
+        self._check_designator = check_designator
+
+    def execute(self, userdata=None):
+        val = self._check_designator.resolve()
+        if val:
+            self._check_designator.write(False)
+        else:
+            self._check_designator.write(True)
+
+        return "done"
 
 
 if __name__ == "__main__":

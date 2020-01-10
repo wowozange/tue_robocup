@@ -5,8 +5,8 @@ import rospy
 import tf
 import geometry_msgs
 from diagnostic_msgs.msg import DiagnosticArray
-from sensor_msgs.msg import Image
-from std_msgs.msg import String
+from sensor_msgs.msg import Image, JointState
+from std_msgs.msg import String, ColorRGBA, Header
 
 # TU/e
 from robot_skills import arms
@@ -14,20 +14,24 @@ from robot_skills.util import decorators
 
 from collections import OrderedDict, Sequence
 
+CONNECTION_TIMEOUT = 10.0  # Timeout: all ROS connections must be alive within this duration
+
 
 class Robot(object):
     """
     Interface to all parts of the robot.
     """
-    def __init__(self, robot_name="", wait_services=False):
+    def __init__(self, robot_name="", wait_services=False, tf_listener=None):
 
         self.robot_name = robot_name
-        self.tf_listener = tf.TransformListener()
+        self.tf_listener = tf.TransformListener() if tf_listener is None else tf_listener
 
         self.configured = False
 
         # Body parts
         self.parts = dict()
+        self.arms = OrderedDict()  # type: OrderedDict[arms.Arm]
+        # Ensuring arms have a fixed order of iteration.
 
         # Ignore diagnostics: parts that are not present in the real robot
         self._ignored_parts = []
@@ -42,11 +46,11 @@ class Robot(object):
         # Check hardware status
         self._hardware_status_sub = rospy.Subscriber("/" + self.robot_name + "/hardware_status", DiagnosticArray, self.handle_hardware_status)
 
-        # Grasp offsets
-        go = rospy.get_param("/"+self.robot_name+"/skills/arm/offset/grasp_offset")
-        self.grasp_offset = geometry_msgs.msg.Point(go.get("x"), go.get("y"), go.get("z"))
-
         self.laser_topic = "/"+self.robot_name+"/base_laser/scan"
+
+    def get_joint_states(self):
+        msg = rospy.wait_for_message("/{}/joint_states".format(self.robot_name), JointState)
+        return dict(zip(msg.name, msg.position))
 
     def add_body_part(self, partname, bodypart):
         """
@@ -57,38 +61,65 @@ class Robot(object):
         self.parts[partname] = bodypart
         setattr(self, partname, bodypart)
 
+    def add_arm_part(self, arm_name, arm_part):
+        """
+        Add an arm part to the robot. This is added to the parts dictionary and in the self.arms dictionary.
+        :param arm_name: Name of the arm part.
+        :param arm_part: Arm part object
+        """
+        self.parts[arm_name] = arm_part
+        self.arms[arm_name] = arm_part
+
     def configure(self):
         """
         This should be run at the end of the constructor of a child class.
         """
-        self.arms = OrderedDict(left=self.leftArm, right=self.rightArm)  # ToDo: kind of ugly, why do we need this???
-
         # Wait for connections
+        connected = False
         s = rospy.Time.now()
-        for partname, bodypart in self.parts.iteritems():
-            bodypart.wait_for_connections(1.0)
-        e = rospy.Time.now()
-        rospy.logdebug("Connecting took {} seconds".format((e-s).to_sec()))
+        r = rospy.Rate(1.0)
+        rospy.loginfo("Waiting for ROS connections")
+        while not connected and (rospy.Time.now() - s).to_sec() < CONNECTION_TIMEOUT:
+            connected_hypot = True
+            for bodypart in self.parts.values():
+                connected_hypot = connected_hypot and bodypart.wait_for_connections(0.1, log_failing_connections=False)
+            if connected_hypot:
+                connected = True
+                break
+            r.sleep()
+            rospy.loginfo("Will wait for another {} seconds".format(
+                CONNECTION_TIMEOUT - (rospy.Time.now() - s).to_sec()))
+
+        # If connected: log how low it took
+        if connected:
+            e = rospy.Time.now()
+            rospy.logdebug("Connecting took {} seconds".format((e-s).to_sec()))
+        else:  # Else: check again but now do log the errors
+            for bodypart in self.parts.values():
+                bodypart.wait_for_connections(0.1, log_failing_connections=True)
 
         if not self.operational:
-            not_operational_parts = [name for name, part in self.parts.iteritems() if not part.operational]
+            not_operational_parts = [name for name, part in self.parts.items() if not part.operational]
             rospy.logwarn("Not all hardware operational: {parts}".format(parts=not_operational_parts))
 
         self.configured = True
 
     @decorators.deprecated_replace_with('robot.get_arm')
     def leftArm(self):
-        return self.arms['left']
+        return self.arms['leftArm']
 
     @decorators.deprecated_replace_with('robot.get_arm')
     def rightArm(self):
-        return self.arms['right']
+        return self.arms['rightArm']
 
     def reset(self):
         results = {}
-        for partname, bodypart in self.parts.iteritems():
+        for partname, bodypart in self.parts.items():
             rospy.logdebug("Resetting {}".format(partname))
-            bodypart.reset()
+            if self.robot_name == 'hero' and partname == 'torso':
+                rospy.logwarn("Skipping reset of %s", partname)
+            else:
+                bodypart.reset()
         return all(results.values())
 
     def standby(self):
@@ -96,9 +127,9 @@ class Robot(object):
             rospy.logerr('Standby only works for amigo')
             return
 
-        for arm in self.arms.itervalues():
+        for arm in self.arms.values():
             arm.reset()
-        for arm in self.arms.itervalues():
+        for arm in self.arms.values():
             arm.send_gripper_goal('close')
 
         self.head.look_down()
@@ -115,10 +146,11 @@ class Robot(object):
         return output_pose
 
     def get_arm(self, required_gripper_types=None, desired_gripper_types=None,
-                      required_goals=None, desired_goals=None,
-                      required_trajectories=None, desired_trajectories=None,
-                      required_arm_name=None,
-                      required_objects=None, desired_objects=None):
+                required_goals=None, desired_goals=None,
+                required_trajectories=None, desired_trajectories=None,
+                required_arm_name=None,
+                force_sensor_required=False,
+                required_objects=None, desired_objects=None):
         """
         Find an arm that has the needed and hopefully the desired properties.
         Does not give an arm if all needed properties cannot be satisfied. An
@@ -127,8 +159,8 @@ class Robot(object):
 
         :param required_gripper_types: Collection of gripper types that must all be
                 available. None means grippers are not needed.
-        :param desired_gripper_types: Collection of gripper types where one or more
-                may be selected. None means no grippers are desired.
+        :param desired_gripper_types: Collection of gripper types from GripperTypes,
+                where one or more may be selected. None means no grippers are desired.
 
         :param required_goals: Collection of joint goals that must all be available.
                 None means no joint goals are needed.
@@ -143,8 +175,10 @@ class Robot(object):
         :param required_arm_name: Name of the arm that is needed. If set, no
                 other arm will be considered. None means any arm will do.
 
+        :param force_sensor_required: Bool specifying whether a force_sensor is available or not.
+
         :param required_objects: Collection of objects that the arm must have. Special
-                pseudo-objects arms.ANY_OBJECT and arms.NO_OBJECT may be used
+                pseudo-objects PseudoObjects.ANY and PseudoObjects.EMPTY may be used
                 too in the collection, although they do not make much sense when used
                 together with other objects. None means there are no required objects.
         :param desired_objects: Collection of objects that the arm may have. None
@@ -157,7 +191,7 @@ class Robot(object):
 
         # Check that collection arguments are really a collection of objects, but not strings.
         # Because then you might accidentally pass a GripperType instead of a [GripperType], which is a List
-        def seq_or_none(obj): 
+        def seq_or_none(obj):
             return not isinstance(obj, str) and (isinstance(obj, Sequence) or obj is None)
         assert seq_or_none(required_gripper_types)
         assert seq_or_none(desired_gripper_types)
@@ -165,10 +199,11 @@ class Robot(object):
         assert seq_or_none(desired_goals)
         assert seq_or_none(required_trajectories)
         assert seq_or_none(desired_trajectories)
+        assert isinstance(force_sensor_required, bool)
         assert seq_or_none(required_objects)
         assert seq_or_none(desired_objects)
 
-        for arm_name, arm in self.arms.iteritems():
+        for arm_name, arm in self.arms.items():
             if not arm.operational:
                 discarded_reasons.append((arm_name, "not operational"))
                 continue
@@ -180,30 +215,55 @@ class Robot(object):
 
             # Grippers
             matching_grippers = set()
+            # ToDO: HACK for not specifying any requirements
+            if required_gripper_types is None:
+                required_gripper_types = [arms.GripperTypes.GRASPING]
+
             if required_gripper_types is not None:
                 matches = [arm.collect_gripper_types(req_type) for req_type in required_gripper_types]
                 all_matched = all(match_list for match_list in matches)
                 if not all_matched:
                     discarded_reasons.append((arm_name, "required gripper type failed"))
                     continue
-               
+
                 for match in matches:
                     matching_grippers.update(match)
 
+            # ToDO: HACK for not specifying any requirements
+            if desired_gripper_types is None:
+                desired_gripper_types = [arms.GripperTypes.GRASPING]
+
             if desired_gripper_types is not None:
-                matching_grippers.update(arm.collect_gripper_types(des_type) for des_type in desired_gripper_types)
+                matches = [arm.collect_gripper_types(des_type) for des_type in desired_gripper_types]
+                for match in matches:
+                    matching_grippers.update(match)
 
             # Goals
+            # ToDO: HACK for not specifying any requirements
+            if required_goals is None:
+                required_goals = arm.default_configurations.keys()
+            if desired_goals is None:
+                desired_goals = arm.default_configurations.keys()
             matching_goals = _collect_needs_desires(required_goals, desired_goals, arm.has_joint_goal)
             if matching_goals is None:
                 discarded_reasons.append((arm_name, "required goals failed"))
                 continue
 
             # Trajectories
+            # ToDO: HACK for not specifying any requirements
+            if required_trajectories is None:
+                required_trajectories = arm.default_trajectories.keys()
+            if desired_trajectories is None:
+                desired_trajectories = arm.default_trajectories.keys()
             matching_trajectories = _collect_needs_desires(required_trajectories, desired_trajectories,
                                                            arm.has_joint_trajectory)
             if matching_trajectories is None:
                 discarded_reasons.append((arm_name, "required trajectories failed"))
+                continue
+
+            # Force sensor availability
+            if force_sensor_required and not hasattr(arm, "force_sensor"):
+                discarded_reasons.append((arm_name, "should have a force sensor but hasn't"))
                 continue
 
             # Objects
@@ -215,7 +275,11 @@ class Robot(object):
             # Unlike the other properties, it is likely not exactly known what objects will be used.
             # For this reason, it seems better not to limit objects to the set specified in required
             # _objects and desired_objects.
-            uses_objects = (required_objects is not None or desired_objects is not None)
+            # uses_objects = (required_objects is not None or desired_objects is not None)
+
+            # ToDO: HACK for not specifying any requirements:
+            # We often want to use the arm for object manipulation, so this is always needed
+            uses_objects = True  # (required_objects is not None or desired_objects is not None)
 
             # Success!
             if not matching_grippers:
@@ -246,10 +310,10 @@ class Robot(object):
 
         cur_obj = arm.occupied_by
         for obj in obj_collection:
-            if obj == arms.PseudoObjects.ANY: # Any object, but not empty.
+            if obj == arms.PseudoObjects.ANY:  # Any object, but not empty.
                 if cur_obj is None:
                     return False
-            elif obj == arms.PseudoObjects.EMPTY: # Arm must be empty.
+            elif obj == arms.PseudoObjects.EMPTY:  # Arm must be empty.
                 if cur_obj is not None:
                     return False
             elif obj != cur_obj:
@@ -257,10 +321,10 @@ class Robot(object):
         return True
 
     def close(self):
-        for partname, bodypart in self.parts.iteritems():
+        for partname, bodypart in self.parts.items():
             try:
                 bodypart.close()
-            except:
+            except Exception:
                 pass
 
     @property
@@ -278,12 +342,31 @@ class Robot(object):
 
         diagnostic_dict = {diagnostic_status.name:diagnostic_status for diagnostic_status in diagnostic_array.status}
 
-        for name, part in self.parts.iteritems():
+        for name, part in self.parts.items():
             # Pass a dict mapping the name to the item.
             # Bodypart.handle_hardware_status needs to find the element relevant to itself
             # iterating over the array would be done be each bodypart, but with a dict they can just look theirs up.
             if name not in self._ignored_parts:
                 part.process_hardware_status(diagnostic_dict)
+
+    def move_to_inspect_pose(self, inspection_position):
+        """
+        This poses the robot for an inspect.
+
+        :param inspection_position: kdl.Frame with the pose of the entity to be inspected.
+        :return result: boolean, false if something went wrong.
+        """
+        rospy.logdebug("move_to_inspect_pose() not implemented for {} object".format(self.robot_name))
+        return True
+
+    def move_to_hmi_pose(self):
+        """
+        This poses the robot for conversations.
+
+        :return None
+        """
+        rospy.logdebug("move_to_hmi_pose() not implemented for {} object".format(self.robot_name))
+        pass
 
     def __enter__(self):
         pass
@@ -299,13 +382,13 @@ def _collect_needs_desires(needs, desires, test_func):
     :param needs: Collection of needed values. None means nothing is needed.
     :param desires: Collection of desired values, None means nothing is desired.
     :param test_func: Function that takes a value and returns whether the value is available.
-    :return: Needed and subset of the desired values, or None if the needs cannor be met.
+    :return: Needed and subset of the desired values, or None if the needs can't be met.
     """
     founds = set()
     if needs is not None:
         founds.update(_collect_available(needs, test_func))
-        if len(founds) != len(needs): # All needs must be met.
-            return False
+        if len(founds) != len(needs):  # All needs must be met.
+            return None
 
     if desires is not None:
         founds.update(_collect_available(desires, test_func))
@@ -324,10 +407,3 @@ def _collect_available(values, test_func):
         if test_func(value):
             founds.add(value)
     return founds
-
-
-if __name__ == "__main__":
-    rospy.init_node("robot")
-
-    import doctest
-    doctest.testmod()

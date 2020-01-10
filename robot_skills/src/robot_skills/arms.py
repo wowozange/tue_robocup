@@ -1,3 +1,5 @@
+import time
+
 # ROS
 import rospy
 import std_msgs.msg
@@ -6,6 +8,7 @@ import PyKDL as kdl
 import visualization_msgs.msg
 from actionlib import GoalStatus
 from control_msgs.msg import FollowJointTrajectoryGoal, FollowJointTrajectoryAction
+from robot_skills.force_sensor import ForceSensor
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 # TU/e Robotics
@@ -15,34 +18,25 @@ from tue_msgs.msg import GripperCommand
 
 from robot_skills.robot_part import RobotPart
 
-
-# If the grasp sensor distance is smaller than this value, the gripper is holding an object
-
-GRASP_SENSOR_THRESHOLD = rospy.get_param("skills/arm/grasp_sensor/threshold", 0.1)
-GRASP_SENSOR_TIMEOUT = rospy.get_param("skills/arm/grasp_sensor/timeout", 0.5)
-GRASP_SENSOR_LIMITS = tuple(rospy.get_param("skills/arm/grasp_sensor/limits", [0.02, 0.18]))
-# Temporary: this should be approximately 0.02 once the sensor is correctly setup
-GRASP_SENSOR_LIMITS = tuple(rospy.get_param("skills/arm/grasp_sensor/limits", [0.0025, 0.18]))
-
-
 # Constants for arm requirements. Note that "don't care at all" is not here, as
 # it can be expressed by not imposing a requirement (set it to None).
 
+
 # Specific types of gripper.
 class GripperTypes(object):
-    #Concrete types of gripper.
+    # Concrete types of gripper.
     PINCH = "gripper-type-pinch"
     PARALLEL = "gripper-type-parallel"
     SUCTION = "gripper-type-suction"
 
     # Pseudo gripper types.
-    GRASPING = "pseudo-gripper-type-any-grasping-will-do" # Either pinch or parallel
+    GRASPING = "pseudo-gripper-type-any-grasping-will-do"  # Either pinch or parallel
     NONE = "pseudo-gripper-type-no-gripper"
 
 
 # Pseudo objects for 'any object' or 'no object'.
 class PseudoObjects(object):
-    ANY  = "pseudo-object-saying-any-object-will-do"
+    ANY = "pseudo-object-saying-any-object-will-do"
     EMPTY = "pseudo-object-saying-lack-of-object-will-do"
 
 
@@ -67,6 +61,7 @@ class PublicArm(object):
 
     :ivar _available_joint_trajectories: Joint trajectories that may be used.
     :vartype _available_joint_trajectories: set of str
+
     """
     def __init__(self, arm, available_gripper_types, default_gripper_type,
                  has_occupied_by, available_joint_goals, available_joint_trajectories):
@@ -89,8 +84,9 @@ class PublicArm(object):
         """
         Query the object currently held by the arm.
         """
-        self._test_die(self._has_occupied_by, "occupied_by", 
-                       "Specify get_arm(..., required_objects=[PseudoObjects.EMPTY]) or get_arm(..., required_objects=[PseudoObjects.ANY]) or get_arm(..., required_objects=[Entity(...)])")
+        self._test_die(self._has_occupied_by, "occupied_by",
+                       "Specify get_arm(..., required_objects=[PseudoObjects.EMPTY]) or get_arm(..., required_objects="
+                       "[PseudoObjects.ANY]) or get_arm(..., required_objects=[Entity(...)])")
         return self._arm.occupied_by
 
     @occupied_by.setter
@@ -98,8 +94,9 @@ class PublicArm(object):
         """
         Set the object currently held by the arm,
         """
-        self._test_die(self._has_occupied_by, "occupied_by", 
-                       "Specify get_arm(..., required_objects=[PseudoObjects.EMPTY]) or get_arm(..., required_objects=[PseudoObjects.ANY]) or get_arm(..., required_objects=[Entity(...)])")
+        self._test_die(self._has_occupied_by, "occupied_by",
+                       "Specify get_arm(..., required_objects=[PseudoObjects.EMPTY]) or get_arm(..., required_objects="
+                       "[PseudoObjects.ANY]) or get_arm(..., required_objects=[Entity(...)])")
         self._arm.occupied_by = value
 
     # Joint goals
@@ -109,10 +106,11 @@ class PublicArm(object):
         """
         return configuration in self._available_joint_goals
 
-    def send_joint_goal(self, configuration, timeout=5.0):
-        self._test_die(configuration in self._available_joint_goals, 'joint-goal ' + configuration, 
+    def send_joint_goal(self, configuration, timeout=5.0, max_joint_vel=0.7):
+        self._test_die(configuration in self._available_joint_goals, 'joint-goal ' + configuration,
                        "Specify get_arm(..., required_goals=['{}'])".format(configuration))
-        return self._arm.send_joint_goal(configuration, timeout)
+        return self._arm.send_joint_goal(configuration, timeout=timeout,
+                                         max_joint_vel=max_joint_vel)
 
     # Joint trajectories
     def has_joint_trajectory(self, configuration):
@@ -121,10 +119,17 @@ class PublicArm(object):
         """
         return configuration in self._available_joint_trajectories
 
-    def send_joint_trajectory(self, configuration, timeout=5):
+    def send_joint_trajectory(self, configuration, timeout=5, max_joint_vel=0.7):
         self._test_die(configuration in self._available_joint_trajectories, 'joint-goal ' + configuration,
                        "Specify get_arm(..., required_trajectories=['{}'])".format(configuration))
-        return self._arm.send_joint_trajectory(configuration, timeout)
+        return self._arm.send_joint_trajectory(configuration, timeout=timeout,
+                                               max_joint_vel=max_joint_vel)
+
+    def send_goal(self, frameStamped, timeout=30, pre_grasp=False, first_joint_pos_only=False,
+                  allowed_touch_objects=None):
+        if allowed_touch_objects is None:
+            allowed_touch_objects = list()
+        return self._arm.send_goal(frameStamped, timeout, pre_grasp, first_joint_pos_only, allowed_touch_objects)
 
     # Gripper
     def has_gripper_type(self, gripper_type=None):
@@ -139,13 +144,18 @@ class PublicArm(object):
 
         return gripper_type is not None and gripper_type in self._available_gripper_types
 
-    def send_gripper_goal(self, state, timeout=5.0, gripper_type=None):
+    def send_gripper_goal(self, state, timeout=5.0, gripper_type=None, max_torque=0.1):
         """
         Tell the gripper to perform a motion.
-
         :param state: New state of the gripper.
-        :param timeout: Amount of time availble to reach the goal, default is 5
+        :type state: str (GripperState)
+        :param timeout: Amount of time available to reach the goal, default is 5
+        :type timeout: float
         :param gripper_type: Optional type of gripper to perform the action.
+        :type gripper_type: str
+        :param max_torque: How much torque [Nm] to apply
+        :return: succes
+        :rtype: bool
         """
         if gripper_type is None:
             gripper_type = self.default_gripper_type
@@ -153,7 +163,16 @@ class PublicArm(object):
         self._test_die(gripper_type in self._available_gripper_types, 'gripper type ' + str(gripper_type),
                        "Specify get_arm(..., required_gripper_types=[GripperTypes.X])")
         # Specified type of gripper currently not used.
-        return self._arm.send_gripper_goal(state, timeout)
+        return self._arm.send_gripper_goal(state, timeout, max_torque=max_torque)
+
+    @property
+    def has_force_sensor(self):
+        return hasattr(self._arm, "force_sensor")
+
+    def move_down_until_force_sensor_edge_up(self, timeout=10, retract_distance=0.01):
+        self._test_die(self.has_force_sensor, 'available_force_sensor=' + str(self.has_force_sensor),
+                       "Specify get_arm(..., available_force_sensor=True")
+        return self._arm.move_down_until_force_sensor_edge_up(timeout=timeout, retract_distance=retract_distance)
 
     def handover_to_human(self, timeout=10, gripper_type=None):
         if gripper_type is None:
@@ -175,11 +194,29 @@ class PublicArm(object):
         # Provided gripper type currently ignored.
         return self._arm.wait_for_motion_done(timeout, cancel)
 
+    def cancel_goals(self):
+        """
+        Cancels the currently active grasp-precompute and joint-trajectory-action goals
+        :return: no return
+        """
+        return self._arm.cancel_goals()
+
     def close(self):
         self._arm.close()
 
     def reset(self, timeout=0.0):
         return self._arm.reset(timeout)
+
+    @property
+    def base_offset(self):
+        """
+        Retrieves the 'optimal' position of an object w.r.t. the base link of a
+        robot for this arm to grasp it.
+
+        :return: Position of an object w.r.t. the base link of a robot.
+        :rtype: kdl Vector
+        """
+        return self._arm.base_offset
 
     def _test_die(self, cond, feature, hint=''):
         """
@@ -210,13 +247,18 @@ class GripperMeasurement(object):
         self._distance = distance
         self._stamp = rospy.Time.now()
 
+        # If the grasp sensor distance is smaller than this value, the gripper is holding an object
+        self.GRASP_SENSOR_THRESHOLD = rospy.get_param("skills/arm/grasp_sensor/threshold", 0.1)
+        self.GRASP_SENSOR_TIMEOUT = rospy.get_param("skills/arm/grasp_sensor/timeout", 0.5)
+        self.GRASP_SENSOR_LIMITS = tuple(rospy.get_param("skills/arm/grasp_sensor/limits", [0.0025, 0.18]))
+
     def _is_recent(self):
         """
         Checks if the sensor data is recent
 
         :return: bool True if recent, i.e., measurement is less than GRASP_SENSOR_TIMEOUT old, False otherwise
         """
-        return (rospy.Time.now() - self._stamp).to_sec() < GRASP_SENSOR_TIMEOUT
+        return (rospy.Time.now() - self._stamp).to_sec() < self.GRASP_SENSOR_TIMEOUT
 
     @property
     def distance(self):
@@ -229,7 +271,7 @@ class GripperMeasurement(object):
         # Check if data is recent
         if not self._is_recent():
             return float('nan')
-        elif not GRASP_SENSOR_LIMITS[0] < self._distance < GRASP_SENSOR_LIMITS[1]:
+        elif not self.GRASP_SENSOR_LIMITS[0] < self._distance < self.GRASP_SENSOR_LIMITS[1]:
             return float('nan')
         else:
             return self._distance
@@ -242,7 +284,7 @@ class GripperMeasurement(object):
 
         :return: bool if holding
         """
-        return self._is_recent() and GRASP_SENSOR_LIMITS[0] < self._distance < GRASP_SENSOR_THRESHOLD
+        return self._is_recent() and self.GRASP_SENSOR_LIMITS[0] < self._distance < self.GRASP_SENSOR_THRESHOLD
 
     @property
     def is_unknown(self):
@@ -252,7 +294,7 @@ class GripperMeasurement(object):
 
         :return: bool if unknown
         """
-        return not self._is_recent() or self._distance < GRASP_SENSOR_LIMITS[0]
+        return not self._is_recent() or self._distance < self.GRASP_SENSOR_LIMITS[0]
 
     @property
     def is_empty(self):
@@ -261,7 +303,7 @@ class GripperMeasurement(object):
 
         :return: bool if holding
         """
-        return self._is_recent() and self._distance > GRASP_SENSOR_THRESHOLD
+        return self._is_recent() and self._distance > self.GRASP_SENSOR_THRESHOLD
 
     def __repr__(self):
         return "Distance: {}, is_holding: {}, is_unknown: {}, " \
@@ -282,37 +324,38 @@ class Arm(RobotPart):
     Use left or right to get arm while running from the python console
 
     Examples:
-    >>> left.send_goal(0.265, 1, 0.816, 0, 0, 0, 60)
+    >>> left.send_goal(0.265, 1, 0.816, 0, 0, 0, 60)  # doctest: +SKIP
     or Equivalently:
-    >>> left.send_goal(px=0.265, py=1, pz=0.816, yaw=0, pitch=0, roll=0, time_out=60, pre_grasp=False, frame_id='/amigo/base_link')
+    >>> left.send_goal(px=0.265, py=1, pz=0.816, yaw=0, pitch=0, roll=0, time_out=60, pre_grasp=False, frame_id='/amigo/base_link')  # doctest: +SKIP
 
     #To open left gripper
-    >>> left.send_gripper_goal_open(10)
+    >>> left.send_gripper_goal_open(10)  # doctest: +SKIP
     """
-    def __init__(self, robot_name, tf_listener, side):
+    def __init__(self, robot_name, tf_listener, get_joint_states, side):
         """
         constructor
         :param robot_name: robot_name
         :param tf_listener: tf_server.TFClient()
+        :param get_joint_states: get_joint_states function for getting the last joint states
         :param side: left or right
         """
         super(Arm, self).__init__(robot_name=robot_name, tf_listener=tf_listener)
         self.side = side
-        if (self.side is "left") or (self.side is "right"):
-            pass
-        else:
-            raise Exception("Side should be either: left or right")
 
         self._occupied_by = None
 
         self._operational = True  # In simulation, there will be no hardware cb
 
         # Get stuff from the parameter server
-        offset = self.load_param('skills/arm/offset/' + self.side)
+        offset = self.load_param('skills/arm/' + self.side + '/grasp_offset/')
         self.offset = kdl.Frame(kdl.Rotation.RPY(offset["roll"], offset["pitch"], offset["yaw"]),
                                 kdl.Vector(offset["x"], offset["y"], offset["z"]))
 
-        self.marker_to_grippoint_offset = self.load_param('skills/arm/offset/marker_to_grippoint')
+        self.marker_to_grippoint_offset = self.load_param('skills/arm/' + self.side + '/marker_to_grippoint')
+
+        # Grasp offsets
+        go = self.load_param('skills/arm/' + self.side + '/base_offset')
+        self._base_offset = kdl.Vector(go["x"], go["y"], go["z"])
 
         self.joint_names = self.load_param('skills/arm/joint_names')
         self.joint_names = [name + "_" + self.side for name in self.joint_names]
@@ -328,7 +371,7 @@ class Arm(RobotPart):
         self._ac_gripper = self.create_simple_action_client(
             "/" + robot_name + "/" + self.side + "_arm/gripper/action", GripperCommandAction)
 
-        # Init graps precompute actionlib
+        # Init grasp precompute actionlib
         self._ac_grasp_precompute = self.create_simple_action_client(
             "/" + robot_name + "/" + self.side + "_arm/grasp_precompute", GraspPrecomputeAction)
 
@@ -346,6 +389,8 @@ class Arm(RobotPart):
             "/" + robot_name + "/" + self.side + "_arm/grasp_target",
             visualization_msgs.msg.Marker, queue_size=10)
 
+        self.get_joint_states = get_joint_states
+
     def collect_gripper_types(self, gripper_type):
         """
         Query the arm for having the proper gripper type and collect the types that fulfill the
@@ -362,7 +407,8 @@ class Arm(RobotPart):
                     self._has_specific_gripper_types(GripperTypes.PARALLEL))
         return self._has_specific_gripper_types(gripper_type)
 
-    def _has_specific_gripper_types(self, gripper_type):
+    @staticmethod
+    def _has_specific_gripper_types(gripper_type):
         """
         Verify whether the arm as the given type of specific gripper.
 
@@ -377,7 +423,7 @@ class Arm(RobotPart):
         elif gripper_type == GripperTypes.SUCTION:
             return []
         else:
-            return [] # Arm has no unknown types of grippers,
+            return []  # Arm has no unknown types of grippers,
 
     def has_joint_goal(self, configuration):
         """
@@ -413,14 +459,15 @@ class Arm(RobotPart):
         try:
             rospy.loginfo("{0} arm cancelling all goals on all arm-related ACs on close".format(self.side))
         except AttributeError:
-            print "{0} arm cancelling all goals on all arm-related ACs on close. Rospy is already deleted.".format(self.side)
+            print("{0} arm cancelling all goals on all arm-related ACs on close. rospy is already deleted.".
+                  format(self.side))
 
         self._ac_gripper.cancel_all_goals()
         self._ac_grasp_precompute.cancel_all_goals()
         self._ac_joint_traj.cancel_all_goals()
 
     def send_goal(self, frameStamped, timeout=30, pre_grasp=False, first_joint_pos_only=False,
-                  allowed_touch_objects=[]):
+                  allowed_touch_objects=None):
         """
         Send a arm to a goal:
 
@@ -436,6 +483,9 @@ class Arm(RobotPart):
         :param allowed_touch_objects: List of object names in the worldmodel, which are allowed to be touched
         :return: True of False
         """
+        if allowed_touch_objects is None:
+            allowed_touch_objects = list()
+
         # save the arguments for debugging later
         myargs = locals()
 
@@ -485,13 +535,13 @@ class Arm(RobotPart):
 
         self._publish_marker(grasp_precompute_goal, [0, 1, 0], "grasp_point_corrected")
 
-        import time; time.sleep(0.001)  # This is necessary: the rtt_actionlib in the hardware seems
-                                        # to only have a queue size of 1 and runs at 1000 hz. This
-                                        # means that if two goals are send approximately at the same
-                                        # time (e.g. an arm goal and a torso goal), one of the two
-                                        # goals probably won't make it. This sleep makes sure the
-                                        # goals will always arrive in different update hooks in the
-                                        # hardware TrajectoryActionLib server.
+        time.sleep(0.001)   # This is necessary: the rtt_actionlib in the hardware seems
+                            # to only have a queue size of 1 and runs at 1000 hz. This
+                            # means that if two goals are send approximately at the same
+                            # time (e.g. an arm goal and a torso goal), one of the two
+                            # goals probably won't make it. This sleep makes sure the
+                            # goals will always arrive in different update hooks in the
+                            # hardware TrajectoryActionLib server.
 
         # Send goal:
 
@@ -501,11 +551,12 @@ class Arm(RobotPart):
         else:
             result = self._ac_grasp_precompute.send_goal_and_wait(
                 grasp_precompute_goal,
-                execute_timeout=rospy.Duration(timeout)
-            )
+                execute_timeout=rospy.Duration(timeout))
             if result == GoalStatus.SUCCEEDED:
 
-                result_pose = self.tf_listener.lookupTransform(self.robot_name + "/base_link", self.robot_name + "/grippoint_{}".format(self.side), rospy.Time(0))
+                result_pose = self.tf_listener.lookupTransform(self.robot_name + "/base_link",
+                                                               self.robot_name + "/grippoint_{}".format(self.side),
+                                                               rospy.Time(0))
                 dx = grasp_precompute_goal.goal.x - result_pose[0][0]
                 dy = grasp_precompute_goal.goal.y - result_pose[0][1]
                 dz = grasp_precompute_goal.goal.z - result_pose[0][2]
@@ -519,31 +570,35 @@ class Arm(RobotPart):
                 rospy.logerr('grasp precompute goal failed: \n%s', repr(myargs))
                 return False
 
-    def send_joint_goal(self, configuration, timeout=5.0):
+    def send_joint_goal(self, configuration, timeout=5.0, max_joint_vel=0.7):
         """
         Send a named joint goal (pose) defined in the parameter default_configurations to the arm
-        :param configuration: name of configuration, configuration should be loaded as parameter
-        :param timeout: timeout in seconds
+        :param configuration:(str) name of configuration, configuration should be loaded as parameter
+        :param timeout:(secs) timeout in seconds
+        :param max_joint_vel:(int,float,[int]) speed the robot can have when getting to the desired configuration
         :return: True or False, False in case of nonexistent configuration or failed execution
         """
         if configuration in self.default_configurations:
-            return self._send_joint_trajectory(
-                [self.default_configurations[configuration]],
-                timeout=rospy.Duration(timeout))
+            return self._send_joint_trajectory([self.default_configurations[configuration]],
+                                               timeout=rospy.Duration.from_sec(timeout),
+                                               max_joint_vel=max_joint_vel)
         else:
             rospy.logwarn('Default configuration {0} does not exist'.format(configuration))
             return False
 
-    def send_joint_trajectory(self, configuration, timeout=5):
+    def send_joint_trajectory(self, configuration, timeout=5.0, max_joint_vel=0.7):
         """
         Send a named joint trajectory (sequence of poses) defined in the default_trajectories to
         the arm
-        :param configuration: name of configuration, configuration should be loaded as parameter
-        :param timeout: timeout in seconds
+        :param configuration:(str) name of configuration, configuration should be loaded as parameter
+        :param timeout:(secs) timeout in seconds
+        :param max_joint_vel:(int,float,[int]) speed the robot can have when getting to the desired configuration
         :return: True or False, False in case of nonexistent configuration or failed execution
         """
         if configuration in self.default_trajectories:
-            return self._send_joint_trajectory(self.default_trajectories[configuration], timeout=rospy.Duration(timeout))
+            return self._send_joint_trajectory(self.default_trajectories[configuration],
+                                               timeout=rospy.Duration.from_sec(timeout),
+                                               max_joint_vel=max_joint_vel)
         else:
             rospy.logwarn('Default trajectories {0} does not exist'.format(configuration))
             return False
@@ -574,12 +629,16 @@ class Arm(RobotPart):
         """
         self._occupied_by = value
 
-    def send_gripper_goal(self, state, timeout=5.0):
+    def send_gripper_goal(self, state, timeout=5.0, max_torque=0.1):
         """
         Send a GripperCommand to the gripper of this arm and wait for finishing
         :param state: open or close
+        :type state: str (GripperState)
         :param timeout: timeout in seconds; timeout of 0.0 is not allowed
+        :type timeout: float
+        :param max_torque: How much torque [Nm] to apply, only applied when closing the gripper
         :return: True of False
+        :rtype: bool
         """
         goal = GripperCommandGoal()
 
@@ -587,6 +646,7 @@ class Arm(RobotPart):
             goal.command.direction = GripperCommand.OPEN
         elif state == GripperState.CLOSE:
             goal.command.direction = GripperCommand.CLOSE
+            goal.command.max_torque = max_torque
         else:
             rospy.logerr('State shoulde be open or close, now it is {0}'.format(state))
             return False
@@ -595,7 +655,8 @@ class Arm(RobotPart):
 
         if state == GripperState.OPEN:
             if self.occupied_by is not None:
-                rospy.logerr("send_gripper_goal open is called but there is still an entity with id '%s' occupying the gripper, please update the world model and remove this entity" % self.occupied_by.id)
+                rospy.logerr("send_gripper_goal open is called but there is still an entity with id '%s' \
+                occupying the gripper, please update the world model and remove this entity" % self.occupied_by.id)
             self.occupied_by = None
 
         goal_status = GoalStatus.SUCCEEDED
@@ -613,14 +674,16 @@ class Arm(RobotPart):
         :param timeout: timeout in seconds
         :return: True or False
         """
-        pub = rospy.Publisher('/'+self.robot_name+'/handoverdetector_'+self.side+'/toggle_robot2human', std_msgs.msg.Bool, queue_size=1, latch=True)
+        pub = rospy.Publisher('/'+self.robot_name+'/handoverdetector_'+self.side+'/toggle_robot2human',
+                              std_msgs.msg.Bool, queue_size=1, latch=True)
         pub.publish(std_msgs.msg.Bool(True))
 
         try:
-            rospy.wait_for_message('/'+self.robot_name+'/handoverdetector_'+self.side+'/result', std_msgs.msg.Bool, timeout)
-            print '/'+self.robot_name+'/handoverdetector_'+self.side+'/result'
+            rospy.wait_for_message('/'+self.robot_name+'/handoverdetector_'+self.side+'/result', std_msgs.msg.Bool,
+                                   timeout)
+            # print('/'+self.robot_name+'/handoverdetector_'+self.side+'/result')
             return True
-        except rospy.ROSException, e:
+        except rospy.ROSException as e:
             rospy.logerr(e)
             return False
 
@@ -632,48 +695,66 @@ class Arm(RobotPart):
         :param timeout: timeout in seconds
         :return: True or False
         """
-        pub = rospy.Publisher('/'+self.robot_name+'/handoverdetector_'+self.side+'/toggle_human2robot', std_msgs.msg.Bool, queue_size=1, latch=True)
+        pub = rospy.Publisher('/'+self.robot_name+'/handoverdetector_'+self.side+'/toggle_human2robot',
+                              std_msgs.msg.Bool, queue_size=1, latch=True)
         pub.publish(std_msgs.msg.Bool(True))
 
         try:
-            rospy.wait_for_message('/'+self.robot_name+'/handoverdetector_'+self.side+'/result', std_msgs.msg.Bool, timeout)
-            print '/'+self.robot_name+'/handoverdetector_'+self.side+'/result'
+            rospy.wait_for_message('/'+self.robot_name+'/handoverdetector_'+self.side+'/result', std_msgs.msg.Bool,
+                                   timeout)
+            # print('/'+self.robot_name+'/handoverdetector_'+self.side+'/result')
             return True
-        except rospy.ROSException, e:
+        except rospy.ROSException as e:
             rospy.logerr(e)
             return False
 
-    def _send_joint_trajectory(self, joints_references, timeout=rospy.Duration(5), joint_names = None):
+    def _send_joint_trajectory(self, joints_references, max_joint_vel=0.7, timeout=rospy.Duration(5)):
         """
         Low level method that sends a array of joint references to the arm.
 
         If timeout is defined, it will wait for timeout*len(joints_reference) seconds for the
         completion of the actionlib goal. It will return True as soon as possible when the goal
         succeeded. On timeout, it will return False.
-        :param joints_references: list of joint configurations,
+        :param joints_references:[str] list of joint configurations,
         which should be a list of the length equal to the number of joints to be moved
-        :param timeout: timeout for each joint configuration in rospy.Duration(seconds); timeout of 0.0 is not allowed
-        :param joint_names: joint names, which need to me moved
+        :param max_joint_vel:(int,float,[int], [float]) speed the robot can have when getting to the desired
+        configuration. A single value can be given, which will be used for all joints, or a list of values can be given
+        in which the order has to agree with the joints according to the joints_references.
+        :param timeout:(secs) timeout for each joint configuration in rospy.Duration(seconds); timeout of 0.0 is not
+         allowed
         :return: True or False
         """
         if not joints_references:
             return False
 
-        if not joint_names:
-            if len(joints_references[0]) == len(self.joint_names) + len(self.torso_joint_names):
-                joint_names = self.torso_joint_names + self.joint_names
-            else:
-                joint_names = self.joint_names
+        if len(joints_references[0]) == len(self.joint_names) + len(self.torso_joint_names):
+            joint_names = self.torso_joint_names + self.joint_names
+        else:
+            joint_names = self.joint_names
 
-        time_from_start = rospy.Duration()
+        if isinstance(max_joint_vel, (float, int)):
+            max_joint_vel = [max_joint_vel]*len(joint_names)
+
+        if isinstance(max_joint_vel, list):
+            if isinstance(max_joint_vel[0], (int, float)):
+                if len(max_joint_vel) is not len(joint_names):
+                    rospy.logerr("The length of 'max_joint_vel' is {} and the length of 'joint_names' is {}. \n"
+                                 "Please give the velocities for the following joints (in the correct order!): {}"
+                                 .format(len(max_joint_vel), len(joint_names), joint_names))
+
         ps = []
+        time_from_start = 0.0
+        start_joint_state = self.get_joint_states()
+        prev_joint_ref = [start_joint_state[jn] for jn in joint_names]
         for joints_reference in joints_references:
+            max_diff = [abs(prev - new) for prev, new in zip(prev_joint_ref, joints_reference)]
             if len(joints_reference) != len(joint_names):
-                rospy.logwarn('Please use the correct %d number of joint references (current = %d'
-                              % (len(joint_names), len(joints_references)))
+                rospy.logwarn('Please use the correct {} number of joint references (current = {})'
+                              .format(len(joint_names), len(joints_references)))
+            time_from_start += max(x/y for x, y in zip(max_diff, max_joint_vel))
             ps.append(JointTrajectoryPoint(
                 positions=joints_reference,
-                time_from_start=time_from_start))
+                time_from_start=rospy.Duration.from_sec(time_from_start)))
 
         joint_trajectory = JointTrajectory(joint_names=joint_names,
                                            points=ps)
@@ -762,7 +843,18 @@ class Arm(RobotPart):
         """
         self._grasp_sensor_state = GripperMeasurement(msg.data[0])
 
-    def _publish_marker(self, goal, color, ns = ""):
+    @property
+    def base_offset(self):
+        """
+        Retrieves the 'optimal' position of an object w.r.t. the base link of a
+        robot for this arm to grasp it.
+
+        :return: Position of an object w.r.t. the base link of a robot.
+        :rtype: kdl Vector
+        """
+        return self._base_offset
+
+    def _publish_marker(self, goal, color, ns=""):
         """
         Publish markers for visualisation
         :param goal: tue_manipulation_msgs.msg.GraspPrecomputeGoal
@@ -792,6 +884,50 @@ class Arm(RobotPart):
 
     def __repr__(self):
         return "Arm(side='{side}')".format(side=self.side)
+
+
+class ForceSensingArm(Arm):
+    def __init__(self, robot_name, tf_listener, get_joint_states, side):
+        """
+        :todo: Make the Arm class similar to the robot, such that it can be composed from parts
+
+        constructor
+        :param robot_name: robot_name
+        :param tf_listener: tf_server.TFClient()
+        :param get_joint_states: get_joint_states function for getting the last joint states
+        :param side: left or right
+        """
+        super(ForceSensingArm, self).__init__(robot_name, tf_listener, get_joint_states, side)
+
+        self.force_sensor = ForceSensor(robot_name, tf_listener, "/" + robot_name + "/wrist_wrench/raw")
+
+    def move_down_until_force_sensor_edge_up(self, timeout=10, retract_distance=0.01):
+        """
+        Move down the arm (hero specific, only joint arm_lift_joint) until the force sensor detects an edge up
+
+        A force_sensor.TimeOutException will be raised if no edge up is detected within timeout
+
+        :param timeout: Max duration for edge up detection
+        :param retract_distance: How much to retract if we have reached a surface
+        """
+        # Fill with required joint names (desired in hardware / gazebo impl)
+        current_joint_state = self.get_joint_states()
+        current_joint_state['arm_lift_joint'] = 0
+        self._ac_joint_traj.send_goal(self._make_goal(current_joint_state, timeout))
+
+        self.force_sensor.wait_for_edge_up(timeout)
+        self.cancel_goals()
+
+        current_joint_state = self.get_joint_states()
+        current_joint_state['arm_lift_joint'] += retract_distance
+        self._ac_joint_traj.send_goal(self._make_goal(current_joint_state, 0.5))
+
+    def _make_goal(self, current_joint_state, timeout):
+        positions = [current_joint_state[n] for n in self.joint_names]
+        points = [JointTrajectoryPoint(positions=positions,
+                                       time_from_start=rospy.Duration.from_sec(timeout))]
+        trajectory = JointTrajectory(joint_names=self.joint_names, points=points)
+        return FollowJointTrajectoryGoal(trajectory=trajectory)
 
 
 class FakeArm(RobotPart):
@@ -833,13 +969,13 @@ class FakeArm(RobotPart):
                   allowed_touch_objects=[]):
         return False
 
-    def send_joint_goal(self, configuration, timeout=5.0):
+    def send_joint_goal(self, configuration, max_joint_vel=0.7, timeout=5.0):
         return False
 
-    def send_joint_trajectory(self, configuration, timeout=5):
+    def send_joint_trajectory(self, configuration, max_joint_vel=0.7, timeout=5):
         return False
 
-    def _send_joint_trajectory(self, joints_references, timeout=rospy.Duration(5), joint_names = None):
+    def _send_joint_trajectory(self, joints_references, max_joint_vel=0.7, timeout=rospy.Duration(5)):
         rospy.logwarn("_send_joint_trajectory called on FakeArm.")
         return False
 

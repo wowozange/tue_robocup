@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # System
 import collections
 import copy
@@ -364,7 +362,8 @@ class Recovery(smach.State):
                 self._face_pos_pub.publish(operator_pos_ros)
 
                 recovered_operator = self._robot.ed.get_closest_laser_entity(radius=self._lost_distance,
-                                                                             center_point=operator_pos_kdl)
+                                                                             center_point=operator_pos_kdl,
+                                                                             ignore_z=True)
                 if recovered_operator:
                     print
                     "Found one!"
@@ -432,19 +431,10 @@ class FollowOperator2(smach.StateMachine):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        robot_name = sys.argv[1]
-    else:
-        print
-        "Please provide robot name as argument."
-        exit(1)
 
-    if robot_name == "amigo":
-        from robot_skills.amigo import Amigo as Robot
-    elif robot_name == "sergio":
-        from robot_skills.sergio import Sergio as Robot
+    from robot_skills import get_robot_from_argv
 
     rospy.init_node('test_follow_operator')
-    robot = Robot()
+    robot = get_robot_from_argv(index=1)
     sm = FollowOperator2(robot)
     sm.execute()

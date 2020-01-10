@@ -1,5 +1,3 @@
-#! /usr/bin/env python
-
 # ROS
 import rospy
 import smach
@@ -72,7 +70,7 @@ class Clear(smach.StateMachine):
         segmented_entities_designator = VariableDesignator([], resolve_type=[ClassificationResult])
         selected_entity_designator = EntityByIdDesignator(robot, "TBD", name='selected_entity_designator', )
 
-        arm_des = UnoccupiedArmDesignator(robot.arms, robot.arms['left']).lockable()
+        arm_des = UnoccupiedArmDesignator(robot, {}).lockable()
         arm_des.lock()
 
         place_position = states.util.designators.EmptySpotDesignator(robot, EdEntityDesignator(

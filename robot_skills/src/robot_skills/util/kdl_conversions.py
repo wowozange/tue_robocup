@@ -24,6 +24,13 @@ class FrameStamped(object):
         return "FrameStamped(pos:{pos}, rot:{rot} @ {fid})".format(pos=xyz, rot=rpy, fid=self.frame_id)
 
     def projectToFrame(self, frame_id, tf_listener):
+        """
+        Computes a new FrameStamped from this frame in the requested frame ID
+
+        :param frame_id: (str) frame id of the new FrameStamped
+        :param tf_listener: (TF Listener) tf listener used for the computation of the transformation
+        :return: (FrameStamped) with provided frame id
+        """
         tf_listener.waitForTransform(self.frame_id, frame_id, time=rospy.Time(0), timeout=rospy.Duration(1))
         transformed_pose = tf_listener.transformPose(frame_id, kdl_frame_stamped_to_pose_stamped_msg(self))
         return kdl_frame_stamped_from_pose_stamped_msg(transformed_pose)
@@ -33,7 +40,7 @@ class FrameStamped(object):
         :returns VectorStamped
         >>> fs = FrameStamped(kdl.Frame(kdl.Rotation.Quaternion(1, 0, 0, 0), kdl.Vector(1, 2, 3)), "/map")
         >>> fs.extractVectorStamped()
-        [           1,           2,           3] @ /map
+        VectorStamped([           1,           2,           3] @ /map)
         """
         return deepcopy(VectorStamped(frame_id=self.frame_id, vector=self.frame.p))
 
@@ -246,7 +253,7 @@ def kdl_vector_stamped_from_point_stamped_msg(point_stamped):
     """Convert a PointStamped to VectorStamped
     :param point_stamped the PointStamped to be converted
     :returns VectorStamped"""
-    assert isinstance(point_stamped, gm.PointStamped)
+    assert isinstance(point_stamped, gm.PointStamped), "point_stamped is not a geometry_msgs/PointStamped but a {}".format(type(point_stamped))
     return VectorStamped(vector=point_msg_to_kdl_vector(point_stamped.point),
                          frame_id=point_stamped.header.frame_id)
 
@@ -260,6 +267,7 @@ def kdl_vector_stamped_to_point_stamped(vector_stamped):
                         vector_stamped.vector.y(),
                         vector_stamped.vector.z())
     return ps
+
 
 if __name__ == "__main__":
     import doctest

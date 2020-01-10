@@ -7,12 +7,12 @@
 import sys
 import rospy
 import random
-import json
 
 import hmi
 
 from action_server import Client as ActionClient
 
+from robot_skills import get_robot
 from robot_smach_states.navigation import NavigateToObserve, NavigateToWaypoint, NavigateToSymbolic
 from robot_smach_states import StartChallengeRobust
 from robot_smach_states.util.designators import EntityByIdDesignator
@@ -20,6 +20,7 @@ from robot_smach_states.util.designators import EntityByIdDesignator
 from robocup_knowledge import load_knowledge
 
 from conversation_engine import ConversationEngine
+
 
 class ConversationEngineWithHmi(ConversationEngine):
     def __init__(self, robot, grammar, command_target, knowledge):
@@ -33,12 +34,12 @@ class ConversationEngineWithHmi(ConversationEngine):
         self.skip = False
 
         self.time_limit = 0
-        self.tasks_to_be_done = 999
+        self.tasks_to_be_done = 0
         self.tasks_done = 0
         self.finished = False
         self.start_time = rospy.get_time()
 
-        self._tc_fuckup_time = 6.0 # The TC usually needs some time to get in position and out the way of the robot
+        self._tc_fuckup_time = 6.0  # The TC usually needs some time to get in position and out the way of the robot
 
     def _say_to_user(self, message):
         rospy.loginfo("_say_to_user('{}')".format(message))
@@ -74,7 +75,7 @@ class ConversationEngineWithHmi(ConversationEngine):
         else:
             rospy.logwarn("Not going to meeting point, challenge has param skip:=true set")
 
-        if self.tasks_done >= self.tasks_to_be_done and not self.skip:
+        if (self.tasks_done >= self.tasks_to_be_done or self.finished) and not self.skip:
             nwc = NavigateToWaypoint(robot=self.robot,
                                      waypoint_designator=EntityByIdDesignator(robot=self.robot,
                                                                               id=self.knowledge.exit_waypoint),
@@ -95,8 +96,8 @@ class ConversationEngineWithHmi(ConversationEngine):
 
                 sentence, semantics = self.robot.hmi.query(description=description,
                                                            grammar=grammar,
-                                                           target=target)
-
+                                                           target=target,
+                                                           timeout=20)
 
                 if not self.is_text_valid_input(sentence):
                     self._say_to_user("I don't understand what you're saying, please rephrase")
@@ -104,14 +105,14 @@ class ConversationEngineWithHmi(ConversationEngine):
 
                 self.timeout_count = 0
                 correct = True
-                if self.test:
+                if not self.test:
                     correct = self.heard_correct(sentence)
 
                 if correct:
                     # Pass the heard sentence to the conv.engine. This parses it again, but fuck efficiency for now
                     self.user_to_robot_text(sentence)
                     break
-            except (hmi.TimeoutException, hmi.GoalNotSucceededException) as e:
+            except hmi.TimeoutException as e:
                 rospy.logwarn("HMI failed when getting command: {}" .format(e))
                 self.robot.speech.speak(random.sample(self.knowledge.not_understood_sentences, 1)[0])
                 if self.timeout_count >= 3:
@@ -137,40 +138,35 @@ class ConversationEngineWithHmi(ConversationEngine):
     def _start_wait_for_command(self, grammar, target):
         rospy.loginfo("_start_wait_for_command()")
 
-        self.robot.lights.set_color(0,0,1)  #be sure lights are blue
-
+        self.robot.reset()
         self.robot.head.look_at_standing_person()
-        self.robot.leftArm.reset()
-        self.robot.leftArm.send_gripper_goal('close',0.0)
-        self.robot.rightArm.reset()
-        self.robot.rightArm.send_gripper_goal('close',0.0)
-        self.robot.torso.reset()
 
-        self.robot.speech.speak("Trigger me by saying my name, and wait for the ping.", block=True)
+        self.robot.speech.speak("Please trigger me by stating my name directly into the microphone after the ping.", block=True)
 
         self.wait_to_be_called()
 
-        self.robot.speech.speak("What can I do for you?", block=True)
+        self.robot.speech.speak("Please state your command clearly into the microphone after the ping!.", block=True)
 
         while not rospy.is_shutdown():
             try:
                 sentence, semantics = self.robot.hmi.query(description="",
-                                                      grammar=grammar,
-                                                      target=target)
+                                                           grammar=grammar,
+                                                           target=target)
                 if not self.is_text_valid_input(sentence):
-                    self._say_to_user("I don't understand what you're saying, please rephrase")
+                    self._say_to_user("I don't understand what you're saying, please try again.")
                     continue
 
                 self.timeout_count = 0
                 correct = True
-                if self.test:
+                if not self.test:
                     correct = self.heard_correct(sentence)
 
                 if correct:
                     # Pass the heard sentence to the conv.engine. This parses it again, but fuck efficiency for now
                     self.user_to_robot_text(sentence)
+                    rospy.sleep(self._tc_fuckup_time)
                     break
-            except (hmi.TimeoutException , hmi.GoalNotSucceededException) as e:
+            except hmi.TimeoutException as e:
                 rospy.logwarn("HMI failed when getting command: {}" .format(e))
                 self.robot.speech.speak(random.sample(self.knowledge.not_understood_sentences, 1)[0])
                 if self.timeout_count >= 3:
@@ -187,7 +183,7 @@ class ConversationEngineWithHmi(ConversationEngine):
                 self.robot.hmi.query(description="", grammar="T -> %s" % self.robot.robot_name, target="T")
                 self.timeout_count = 0
                 break
-            except (hmi.TimeoutException , hmi.GoalNotSucceededException) as e:
+            except hmi.TimeoutException as e:
                 rospy.logwarn("HMI failed when waiting for name: {}" .format(e))
                 if self.timeout_count >= 3:
                     self.robot.hmi.restart_dragonfly()
@@ -198,7 +194,7 @@ class ConversationEngineWithHmi(ConversationEngine):
                     rospy.logwarn("[GPSR] Timeout_count: {}".format(self.timeout_count))
 
     def heard_correct(self, sentence):
-        self.robot.speech.speak('I heard %s, is this correct?' % sentence)
+        self.robot.speech.speak('I heard %s, is this correct? Please speak loudly into the microphone!' % sentence)
         try:
             if 'no' == self.robot.hmi.query('', 'T -> yes | no', 'T').sentence:
                 self.robot.speech.speak('Sorry, please try again')
@@ -206,7 +202,7 @@ class ConversationEngineWithHmi(ConversationEngine):
             else:
                 rospy.loginfo("'{}' was correct".format(sentence))
                 return True
-        except (hmi.TimeoutException , hmi.GoalNotSucceededException) as e:
+        except hmi.TimeoutException as e:
             rospy.logwarn("HMI failed when getting confirmation: {}" .format(e))
             return True
 
@@ -255,14 +251,7 @@ def main():
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    if robot_name == 'amigo':
-        from robot_skills.amigo import Amigo as Robot
-    elif robot_name == 'sergio':
-        from robot_skills.sergio import Sergio as Robot
-    else:
-        raise ValueError('unknown robot')
-
-    robot = Robot()
+    robot = get_robot(robot_name)
 
     if eegpsr:
         knowledge = load_knowledge('challenge_eegpsr')
@@ -292,14 +281,12 @@ def main():
         # Move to the start location
         robot.speech.speak("Let's see if my operator has a task for me!", block=False)
 
-
     if restart:
         robot.speech.speak("Performing a restart. So sorry about that last time!", block=False)
 
     conversation_engine._start_wait_for_command(knowledge.grammar, knowledge.grammar_target)
     rospy.spin()
 
-# ------------------------------------------------------------------------------------------------------------------------
 
 if __name__ == "__main__":
     sys.exit(main())
