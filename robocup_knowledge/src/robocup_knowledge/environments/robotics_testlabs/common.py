@@ -7,23 +7,25 @@ names = female_names + male_names
 
 # This dict holds all locations
 locations = [
-    {'name': 'couch_table',   'room': 'livingroom', 'category': 'table',   'manipulation': 'yes'},
-    {'name': 'dinner_table',  'room': 'livingroom', 'category': 'table',   'manipulation': 'yes'},
-    {'name': 'bar',           'room': 'livingroom', 'category': 'table',   'manipulation': 'yes'},
-    {'name': 'bookcase',      'room': 'livingroom', 'category': 'shelf',   'manipulation': 'yes'},
+    {'name': 'couch_table',    'room': 'livingroom', 'category': 'table',   'manipulation': 'yes'},
+    {'name': 'dinner_table',   'room': 'livingroom', 'category': 'table',   'manipulation': 'yes'},
+    {'name': 'bookcase',       'room': 'livingroom', 'category': 'shelf',   'manipulation': 'yes'},
+    {'name': 'operator_table', 'room': 'livingroom', 'category': 'shelf',   'manipulation': 'yes'},
+    {'name': 'chair',          'room': 'livingroom', 'category': 'shelf',   'manipulation': 'yes'},
+    {'name': 'panda_table',    'room': 'livingroom', 'category': 'shelf',   'manipulation': 'yes'},
 
-    {'name': 'cabinet',       'room': 'kitchen',    'category': 'shelf',   'manipulation': 'yes'},
-    {'name': 'trashbin',      'room': 'kitchen',    'category': 'utility', 'manipulation': 'no'},
-    {'name': 'plant',         'room': 'kitchen',    'category': 'plant',   'manipulation': 'no'},
+    {'name': 'cabinet',        'room': 'kitchen',    'category': 'shelf',   'manipulation': 'yes'},
+    {'name': 'trashbin',       'room': 'kitchen',    'category': 'utility', 'manipulation': 'yes'},
+    {'name': 'rack',           'room': 'kitchen',    'category': 'shelf',   'manipulation': 'yes'},
+    {'name': 'couch',          'room': 'kitchen',    'category': 'shelf',   'manipulation': 'yes'},
 
-    {'name': 'bed',           'room': 'bedroom',    'category': 'seat',    'manipulation': 'yes'},
-    {'name': 'nightstand',    'room': 'bedroom',    'category': 'table',   'manipulation': 'yes'},
+    {'name': 'flight_case',    'room': 'workshop',   'category': 'table',   'manipulation': 'no'},
+    {'name': 'battery_table',  'room': 'workshop',   'category': 'table',   'manipulation': 'no'},
+    {'name': 'workbench',      'room': 'workshop',   'category': 'table',   'manipulation': 'yes'},
 
-    {'name': 'flight_case',   'room': 'workshop',   'category': 'table',   'manipulation': 'no'},
-    {'name': 'battery_table', 'room': 'workshop',   'category': 'table',   'manipulation': 'no'},
-    {'name': 'workbench',     'room': 'workshop',   'category': 'table',   'manipulation': 'yes'},
-
-    {'name': 'hallway_table', 'room': 'hallway',    'category': 'table',   'manipulation': 'yes'}
+    {'name': 'paperbin',       'room': 'hallway',    'category': 'shelf',   'manipulation': 'no'},
+    {'name': 'bar',            'room': 'hallway',    'category': 'table',   'manipulation': 'yes'},
+    {'name': 'hallway_table',  'room': 'hallway',    'category': 'table',   'manipulation': 'yes'}
 ]
 
 location_rooms = list(set([ o["room"] for o in locations ]))
